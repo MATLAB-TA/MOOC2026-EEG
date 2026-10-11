@@ -9,8 +9,9 @@ cfg.paths = localPaths();
 
 % ---- Dataset (PhysioNet EEG Motor Movement/Imagery Dataset) -------------
 cfg.data.expectedChannels = 64;
-% Recordings that differ in sampling rate or trial timing from the rest.
-cfg.data.excludedSubjects = [88 92 100 104];
+% Recordings that differ in sampling rate or trial timing from the rest
+% (S089: its trial markers differ, so no epochs can be extracted).
+cfg.data.excludedSubjects = [88 89 92 100 104];
 % Left/right fist runs (T1 = left fist, T2 = right fist).
 cfg.data.conditions = struct( ...
     'name', {'imagery', 'movement'}, ...
