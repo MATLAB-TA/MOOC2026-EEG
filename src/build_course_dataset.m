@@ -3,7 +3,7 @@ function build_course_dataset(subjects)
 %
 %   アプリでは1人分のデータを1ステップずつ処理し、最後の「書き出し」で
 %   EEGLAB のデータセット（例：S001_imagery.set）に保存しました。このプログラムは、
-%   それと同じ処理を参加者全員（105人）に行い、アプリの書き出しと同じ形式で
+%   それと同じ処理を参加者全員（104人）に行い、アプリの書き出しと同じ形式で
 %   保存します。できたデータは GitHub のリリースで配布し、受講生は setup.m の
 %   セクション5でダウンロードします。
 %
@@ -45,7 +45,7 @@ setup_eeglab();
 cfg = mooc_default_config();     % フィルタなどの設定（アプリの既定値と同じ）
 
 if nargin < 1
-    subjects = setdiff(1:109, cfg.data.excludedSubjects);   % 105人
+    subjects = setdiff(1:109, cfg.data.excludedSubjects);   % 104人
 end
 
 makeFolder(cfg.paths.icaDir);

@@ -134,7 +134,7 @@ downloadAndUnzip(biosigUrl, 'Biosig3.8.5', biosigPath, biosigCheckFile);
 %[text] **ダウンロードするもの**
 %[text] - 参加者：コードの `subjects` で指定した人（最初は S001〜S005 の5人）
 %[text]     - アプリで解析するのは1人ずつなので、全員分は必要ありません。ほかの人も試したいときは、`subjects` を変えてもう一度実行してください（例：`subjects = [1 2 3 10 20];`）。
-%[text]     - S001〜S109 から選べます。ただし、記録のしかたがほかと違う S088・S092・S100・S104 は使いません（指定しても飛ばします）。
+%[text]     - S001〜S109 から選べます。ただし、記録のしかたがほかと違う S088・S089・S092・S100・S104 は使いません（指定しても飛ばします）。
 %[text] - 記録　：参加者ごとに14回分の記録が公開されています。この演習では、次の6回分だけを使います。
 %[text]     - R03・R07・R11：左右の拳を実際に動かした記録
 %[text]     - R04・R08・R12：左右の拳を動かすところを想像した記録
@@ -149,8 +149,8 @@ physionetUrl = 'https://physionet.org/files/eegmmidb/1.0.0';
 % ダウンロードする参加者の番号（1〜109）。ほかの人も試したいときは、ここを変える
 subjects = [1 2 3 4 5];
 
-% 使わない4人（88, 92, 100, 104）は除く（setdiff は「前の集まりから、後ろの集まりを除く」命令）
-excludedSubjects = [88 92 100 104];
+% 使わない5人（88, 89, 92, 100, 104）は除く（setdiff は「前の集まりから、後ろの集まりを除く」命令）
+excludedSubjects = [88 89 92 100 104];
 subjects = setdiff(subjects, excludedSubjects);
 
 % 記録の番号
@@ -182,7 +182,7 @@ for subject = subjects
 end
 %%
 %[text] ## 5. 機械学習用のデータをダウンロードする
-%[text] 機械学習のパートでは、たくさんの人のデータが必要です。そこで、アプリと同じ処理（ステップ1〜6）を参加者105人全員に行ったデータを、あらかじめ用意しました。
+%[text] 機械学習のパートでは、たくさんの人のデータが必要です。そこで、アプリと同じ処理（ステップ1〜6）を参加者104人全員に行ったデータを、あらかじめ用意しました。
 %[text] アプリの「書き出し」で保存したファイル（例：`S001_imagery.set`）と同じ形式の EEGLAB のデータセットが、1人・1課題ごとに1つずつ入っています。`EEG = pop_loadset('S001_imagery.set');` のようにして読み込みます。
 %[text] - 作ったところ：この演習の GitHub のページ（MATLAB-TA/MOOC2026-EEG）のリリース v1.0
 %[text] - **ダウンロード元：**[https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0)
@@ -224,7 +224,7 @@ env = setup_eeglab();
 subjectFolders = dir(fullfile(rawDataDir, 'S*'));
 subjectCount = numel(subjectFolders);
 
-% 機械学習用のデータのファイルの数を数える（105人分ずつ あるはず）
+% 機械学習用のデータのファイルの数を数える（104人分ずつ あるはず）
 imageryCount   = numel(dir(fullfile(datasetDir, 'imagery', '*.set')));
 movementCount = numel(dir(fullfile(datasetDir, 'movement', '*.set')));
 
