@@ -37,7 +37,8 @@ brain = [];          % cortex of the standard head, loaded for the first map
 
 api = struct('refresh', @refresh, 'setNextEnabled', ...
     @(flag) set(ui.nextButton, 'Enable', matlab.lang.OnOffSwitchState(flag)), ...
-    'computeSources', @computeSources, 'stop', erdView.stop, 'guide', ui.guide);
+    'computeSources', @computeSources, 'showFrame', erdView.showFrame, ...
+    'stop', erdView.stop, 'guide', ui.guide);
 
 % ---- Callbacks -----------------------------------------------------------
     function computeSources()
