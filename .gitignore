@@ -1,0 +1,7 @@
+# Downloaded by setup.m (published empty)
+external/*
+!external/README.md
+# Created by the app
+outputs/
+*.asv
+develop/
