@@ -1,283 +1,257 @@
 # MOOC2026 脳波解析演習（EEGLAB + MATLAB）
 
-中高生〜大学生向けに、脳波解析の流れ（データ取得 → フィルタ → ICA → エポック化 → 信号源推定 → 機械学習）をGUI操作で体験する教材です。難しい処理は `src/` の関数にまとめ、受講生はGUIからそれらを呼び出します。
+[![Open in MATLAB Online](https://www.mathworks.com/images/responsive/global/open-in-matlab-online.svg)](https://matlab.mathworks.com/open/github/v1?repo=MATLAB-TA/MOOC2026-EEG)
 
-- データ：PhysioNet [EEG Motor Movement/Imagery Dataset v1.0.0](https://physionet.org/content/eegmmidb/1.0.0/)（64ch・160 Hz・109名）
-- 本編の課題：**左右の拳の運動イメージ**（R04/R08/R12）。比較用に**実動作**（R03/R07/R11）
-- 実行環境：MATLAB Online で完結（デスクトップ版も可）
+本物の脳波データを使って、**「頭の中で左右どちらの拳を動かそうとしたか」を脳波から読み取る**演習です。中高生〜大学生向けです。
 
-## 演習の構成
+- **パート1（アプリ）**：1人分の脳波を、ボタン操作で1ステップずつ解析します（ノイズ除去 → 独立成分分析 → 左右の比較 → 脳のどこが働いたかの推定）。
+- **パート2（機械学習）**：104人分の脳波で、左右を当てるモデルを作ります。設定を変えて正解率を比べます。
 
-| 層 | データ | 内容 |
+上のボタンを押すと、ブラウザの MATLAB Online でこの演習が開きます。パソコンに何もインストールする必要はありません。
+
+![アプリの操作の流れ（ステップ0〜6）](docs/images/app_tour.gif)
+
+## 使うデータ
+
+PhysioNet の [EEG Motor Movement/Imagery Dataset v1.0.0](https://physionet.org/content/eegmmidb/1.0.0/) を使います。109人が頭に64個の電極を付けて記録した脳波で、1秒あたり160点の記録です。
+
+参加者は、画面の左右に出る合図に合わせて、次の2つの課題を行いました。
+
+- **運動イメージ（本編）**：左右の拳を握るところを想像する（記録 R04・R08・R12）
+- **実動作（比較用）**：左右の拳を実際に握る（記録 R03・R07・R11）
+
+## はじめかた
+
+### 1. 演習を開く
+
+- **MATLAB Online（おすすめ）**：上の「Open in MATLAB Online」ボタンを押します。MathWorks アカウントでサインインすると、この演習のファイルが MATLAB Drive にコピーされ、そのフォルダが「現在のフォルダー」として開きます。「現在のフォルダー」の一覧から `setup.m` をダブルクリックして開きます。
+- **デスクトップ版の MATLAB**：このリポジトリをクローンするか、「Code → Download ZIP」でダウンロードし、そのフォルダを MATLAB の「現在のフォルダー」にします。
+
+必要なもの：MATLAB R2025a 以降（動作確認は R2026b）、Signal Processing Toolbox、Deep Learning Toolbox（パート2のみ）
+
+### 2. 準備する（`setup.m`）
+
+`setup.m` は、説明を読みながらセクションごとに実行する Live Script です。上から順に「セクションを実行」を押すと、必要なものを演習フォルダの中の `external/` にダウンロードします。演習フォルダの外は変更しません。
+
+| セクション | ダウンロードするもの | 大きさ |
 |---|---|---|
-| A. 体験パート | 1名分（その場でPhysioNetから取得） | 前処理と可視化をGUIで1ステップずつ操作 |
-| B. 機械学習パート | 多人数分（TAが事前計算して配布） | Deep Learning Toolboxで左右を分類し、条件を変えて比較 |
+| 1 | EEGLAB 2026.0.0（脳波解析のツール） | 約30 MB |
+| 2 | EEGLAB のプラグイン：firfilt・ICLabel・dipfit・FieldTrip-lite・ROIconnect | 約160 MB |
+| 3 | BioSig（脳波のファイルを読み込むツール） | 約5 MB |
+| 4 | 脳波データ：`subjects` で指定した参加者（最初は S001〜S005） | 1人 約15 MB |
+| 5 | 機械学習用のデータ：104人 × 2課題（この演習の [GitHub リリース](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0)） | 約3 GB |
+| 6 | 確認（「準備ができました」と表示されれば完了） | — |
 
-## 実装状況
+- 同じセクションを2回実行しても大丈夫です。済んでいるものは飛ばし、途中で止まったものは続きから行います。
+- ほかの参加者も解析したいときは、セクション4の `subjects` を変えて実行し直します（例：`subjects = [1 2 3 10 20];`）。
 
-| 段階 | 内容 | 状態 |
-|---|---|---|
-| 1 | 基盤関数（取得・前処理・CAR・ICA・エポック・ERD・特徴量） | ✅ |
-| 2 | 配布データの一括作成ツール | ✅（アプリの書き出しと同じ EEGLAB のデータセット（.set）。全員分の作成とリリースへの添付は未実施） |
-| 3 | GUI：体験パート（タブ0〜4） | ✅（標準のUI部品のみで構成） |
-| 4 | 機械学習（別のアプリ。書き出したデータ・配布データを使用） | 未着手 |
-| 5 | MATLAB Onlineでの通し確認と配布方法 | 未着手 |
-| 6 | 信号源推定（GUIのステップ5） | ✅（標準の頭のモデル＋eLORETA、68領域） |
-
-## ディレクトリ構成
-
-```text
-MOOC2026eeglab/
-├── setup.m                  # ★最初に1回：必要なプログラムと脳波データをダウンロード（Live Script）
-├── launch_app.m             # ★GUIを起動
-├── src/                     # GUIなどから呼ばれる関数（受講生は直接使わない）
-│   ├── mooc_default_config.m   # すべての既定値とフォルダの場所
-│   ├── setup_eeglab.m       # パス設定とEEGLAB起動（最初に呼ぶ）
-│   ├── build_course_dataset.m  # 機械学習用のデータ（external/mooc_dataset）の一括作成（TA用）
-│   ├── io/                  # データの読込・書き出し（合図の読み込み、pop_saveset）
-│   ├── analysis/            # ERD（pop_newtimef）と、脳の領域ごとの活動（pop_roi_activity と同じ計算）
-│   ├── plot/                # 描画
-│   └── app/                 # GUI（下の「GUIのコードの読み方」を参照）
-├── outputs/                 # 受講生の書き出し先（演習フォルダ内で選べるのはここだけ）
-├── external/                # 外部から取得したもの（setup.m がダウンロード。GitHubでは空）
-│   ├── eeglab/              # EEGLAB（plugins/ に firfilt・ICLabel・dipfit・FieldTrip-lite・ROIconnect）
-│   ├── BioSig/
-│   ├── PhysioNet/S###/      # PhysioNetのEDFファイル（生データ。setup.m で指定した参加者だけ）
-│   └── mooc_dataset/<課題>/S###_<課題>.set   # 機械学習用のデータ（105人分。この演習のGitHubリリースから）
-└── develop/                 # 開発用（配布物には含めない）
-    ├── tests/               # 自動テスト
-    ├── screenshots/         # テストが保存する画面の画像
-    ├── make_ml_illustrations.m  # machine_learning.m の説明のイラストを作り、埋め込む（TA用）
-    ├── ml_illustrations/    # そのイラスト（PNG）
-    └── legacy/              # 以前の試作と、整理で外した関数・スクリプト
-```
-
-## 準備（setup.m）
-
-`setup.m` は、セクションごとに説明を読みながら実行する Live Script です（MATLAB R2025a 以降の、テキスト形式の Live Script）。上から順に「セクションを実行」を押すと、次のものを演習フォルダの中にダウンロードします。演習フォルダの外は変更しません。
-
-| セクション | 取得するもの | 取得先 | 大きさ | 置き場所 |
-|---|---|---|---|---|
-| 1 | EEGLAB 2026.0.0 | GitHub（sccn/eeglab のタグ） | 約30 MB | `external/eeglab` |
-| 2 | EEGLAB のプラグイン：firfilt 2.8・ICLabel 1.7・dipfit 5.6・FieldTrip-lite（250523）・ROIconnect 1.1 | EEGLABのプラグイン配布サイト | 約160 MB | `external/eeglab/plugins/<名前と版>`（例：`dipfit5.6`。版の番号を付けると、EEGLAB が「新しい版があります」と表示しない） |
-| 3 | BioSig 3.8.5（MATLAB の組み込み関数と同じ名前のファイルを含むため plugins の外に置き、使う部分だけパスに加える） | EEGLABのプラグイン配布サイト | 約5 MB | `external/BioSig` |
-| 4 | 脳波データ：`subjects` で指定した参加者（既定は S001〜S005）× 左右の拳の記録6回（R03・R04・R07・R08・R11・R12） | PhysioNet | 1人 約15 MB | `external/PhysioNet/S###/` |
-| 5 | 機械学習用のデータ：105人 × 2課題（アプリの書き出しと同じ形式の .set） | この演習の GitHub リリース | 約3 GB | `external/mooc_dataset/<課題>/` |
-| 6 | 確認 | — | — | — |
-
-- 同じセクションを2回実行しても壊れません（済んでいるものは飛ばし、途中で止まったものはやり直します。脳波データは続きから取得します）。
-- ダウンロードを行うのは `setup.m` だけです。アプリと `src/` の関数はインターネットに接続しません。ただし EEGLAB は起動時にプラグインの新しい版があるかを確認します（EEGLAB の標準の動作）。
-- 外部から取得したもの（プログラム・生データ・機械学習用のデータ）はすべて `external/` に置きます。GitHub では `external/` を空の状態で公開します（`.gitignore`）。
-- アプリで解析するのは1人ずつなので、生データは必要な参加者だけをダウンロードします。アプリの参加者の選択肢には、ダウンロード済みの参加者だけが出ます。
-- 機械学習用のデータは全員分の作成に時間がかかるため、TAが事前に `src/build_course_dataset.m` で作成し、GitHub のリリースに zip で添付します（リポジトリには入れません。Git の履歴が大きくなるのを避けるため）。
-- バージョンは固定しています。上の版で動作を確認済みです（MATLAB R2026b）。
-
-## 使い方
+### 3. 演習を進める
 
 ```matlab
-setup                                    % 最初に1回（Live Scriptとして開き、セクションごとに実行するのがおすすめ）
-launch_app                               % GUIを起動
+launch_app            % パート1：アプリを起動する
 ```
 
-関数を直接使う場合は、先に `addpath src; setup_eeglab` でパスを設定します。
+パート2は、`machine_learning.m` を開き、セクションを上から順に実行します。
 
-### GUIの構成
+## パート1：アプリで1人分の脳波を解析する
 
-| タブ | 内容 | ファイル |
-|---|---|---|
-| 0. はじめに | データの内容（仕様・電極配置・参加者の画面）、6ステップの流れ（絵付き）、環境の確認（MATLAB・Signal Processing Toolbox・EEGLAB・BioSig・ICLabel・ROIconnect） | `src/app/steps/step_intro.m` |
-| 1. データを理解 | ① 記録を選ぶ：左右の拳の記録6回分の一覧から、つなげる記録をチェックして読込、つなげた結果の時間軸表示（チェックを変えるたびに更新。保存済みの記録は合図の位置まで表示）。② 脳波を見る：波形と電極配置、実験の再生 | `src/app/steps/step_data.m` |
-| 2. ノイズを除去 | ノッチ・バンドパス・間引き・CAR（間引きとCARは初期状態でオフ）。PSDと波形の前後比較（電極の位置図つき）、60 Hzノイズの減少量 | `src/app/steps/step_filter.m` |
-| 3. 独立成分分析（ICA） | ①〜④の段階ボタン（セーブポイントつき。ICAは毎回計算し、計算済み結果の読み込みは使わない）。説明画面にステップ全体の図（混ざった波形 → ICA → ICLabel → 組み立て直し）。①の後に成分一覧（クリックで波形・周波数）、②の後に7種類の要因（図に重ねると該当する要因が色付き、クリックした成分の確率を円グラフで表示）、③で×印（手動で変更可）、除去前後の比較 | `src/app/steps/step_ica.m` |
-| 4. 左右の拳で脳の変化を比較 | ① エポックに分ける（左拳・右拳の合図ごとに切り出し、C3などの波形を表示）。② 周波数帯（δ・θ・α/μ・β・γ のプリセット、または Hz を自分で入力）のパワーのC3/C4での時間変化と頭皮マップ。マップは合図の前後を実時間で再生（既定1/4倍速）し、参加者の画面も同じ時刻に合わせて表示（`mooc_ui_erd_view`） | `src/app/steps/step_erd.m` |
-| 5. 信号源推定 | ステップ4のエポックから、標準の頭のモデル（Colin27）とeLORETAで脳の約5000点の活動を推定し、68領域（Desikan-Killiany）にまとめる。左拳・右拳の領域ごとのERDを脳の図（上から見た図）で表示し、左右の運動野・感覚野の時間変化を比較。画面の構成と再生はステップ4と同じ（`mooc_ui_erd_view`） | `src/app/steps/step_source.m` |
-| 6. データを書き出す | 処理済みデータを EEGLAB のデータセット（.set）として `pop_saveset` で保存（保存先はダイアログで選択し、その中に `S###_<課題>.set`）。`EEG.data`（電極 × 時間 × 試行）・`EEG.roi.source_roi_data`（ステップ5を行った場合）・`EEG.etc.mooc.labels`（試行ごとの合図）・`EEG.history`（処理のコード）など。保存後に `pop_loadset` で読み直し、中身の大きさと1試行目を表で表示。演習のプログラムのフォルダ・MATLABのパス上のフォルダは選べない | `src/app/steps/step_export.m` |
+`launch_app` で開くアプリには、7つのタブがあります。左から順に進めると、ステップ1で選んだ1人分の脳波が、少しずつきれいになり、分析されていきます。
 
-ウィンドウの最上部には、どのタブでも「解析中のデータ」の帯（`src/app/ui/mooc_ui_pipeline_bar.m`）が表示されます。
-
-- 内容：データ → ノイズ除去 → ICA → 左右比較 の各段階を、済／未と主な設定つきで示します。
-- 役割：すべてのタブが、ステップ1で選んだ同じデータを順に処理していることを示します。
-
-どのタブも同じ画面構成です（`src/app/ui/mooc_ui_page_layout.m`）。
-
-- 左側：「このステップでやること」（説明画面を開き直すボタンつき）「操作」「このデータに行った処理」「次のステップへ」
-- 右側：グラフ（数値はグラフ上に直接書き込む）
-- 説明画面：タブを初めて開いたときに、このステップで行うことを絵と箇条書きで重ねて表示します。
-- 進捗ダイアログ：処理の実行中は、実行中の工程名と「詳しい進み具合はコマンドウィンドウに表示される」旨を表示します（`mooc_ui_run_steps`）。
-
-ボタンは役割ごとに色分けします（`src/app/ui/mooc_ui_style_buttons.m`。ボタンの `Tag` で役割を指定）。
-
-| 色 | 役割 |
+| タブ | やること |
 |---|---|
-| 青（白い文字） | 次に押すボタン（そのタブでまだ済んでいない最初の段階。全部済んだら「次のステップへ」） |
-| 薄い緑 | 済んだ段階のボタン（押せばやり直せる） |
-| 薄い青 | まだ済んでいないが押せる段階のボタン |
-| 白 | ワークフローと関係のない補助のボタン（「説明をもう一度見る」など） |
-| 灰色 | 前の段階が済んでいないため押せないボタン |
+| 0. はじめに | 使うデータと、6つのステップの流れを知る。環境（ツールが入っているか）を確かめる |
+| 1. データを理解 | 解析する記録を選んで読み込む。脳波の波形と電極の位置を見て、実験の様子（参加者が見ていた画面）を再生する |
+| 2. ノイズを除去 | 電源のノイズ（60 Hz）や、ゆっくりした揺れを取り除く。取り除く前と後を、波形と周波数のグラフで比べる |
+| 3. 独立成分分析（ICA） | 混ざり合った脳波を、もとの信号（成分）に分ける。まばたき・筋肉などのノイズの成分を ICLabel で見分けて取り除く |
+| 4. 左右の拳で脳の変化を比較 | 合図ごとに脳波を切り出し、左拳と右拳で μ波・β波の強さがどう変わるか（ERD）を、頭皮の図の動画で比べる |
+| 5. 信号源推定 | 頭皮の脳波から、脳の68の領域それぞれの活動を推定し、脳の図の動画で見る |
+| 6. データを書き出す | 処理した脳波を EEGLAB のデータセット（.set）として保存する。行った処理のコードも、ファイルの中（`EEG.history`）に保存される |
 
-#### 処理の履歴とセーブポイント
+**ステップ4：左右の拳で、頭皮の脳波の強さはどう変わるか**（青：弱くなる、赤：強くなる）
 
-データに行った処理は、1本の履歴（`MoocHistory`）として全タブで共有され、処理が増えるたびに積み上がります。
+![ステップ4の頭皮の図の動画](docs/images/app_erd.gif)
 
-- 各工程の下に、その工程で実行したコマンド（`>> EEG = pop_eegfiltnew(...)`）を表示します。
-- 開いているタブのステップは工程の詳細まで、ほかのステップは1行の要約で表示します。「右側に全体を表示」で、グラフの場所に全ステップを表示します。
-- 行をクリックすると、その工程で使った関数のファイル（例：`pop_eegfiltnew.m`）をMATLABのエディタで開きます。
-- 書き出しのときに、全工程のコードを1本のスクリプト（`processing_script.m`）として保存します。
+**ステップ5：脳のどの領域が働いたか**
 
-各段階の結果はセーブポイントとして `MoocAppState` に保存されます。
+![ステップ5の脳の図の動画](docs/images/app_source.gif)
 
-| 段階 | 内容 |
+### アプリのしくみ
+
+- **行った処理がコードで見える**：各タブの左側の「このデータに行った処理」に、ボタンを押すたびに実行した EEGLAB のコード（例：`EEG = pop_eegfiltnew(...)`）が積み上がります。行をクリックすると、その関数のファイルが MATLAB のエディタで開きます。
+- **やり直しができる**：各段階の結果は保存されています。ある段階をやり直すと、それより後ろの結果だけが消えます（例：ICA で取り除く成分を変えても、数分かかる ICA の計算はやり直しません）。
+- **ボタンの色**：青いボタンが「次に押すボタン」です。済んだ段階は薄い緑、まだ押せないボタンは灰色になります。
+- **書き出したデータは機械学習にも使える**：ステップ6で保存するファイルは、パート2の機械学習用のデータと同じ形式です。
+
+## パート2：機械学習で、脳波から「左の拳か、右の拳か」を当てる
+
+`machine_learning.m` は、アプリと同じ処理をした **104人分** の脳波を使って、脳波から左右を当てるモデルを作る Live Script です。
+
+![学習とテストの流れ](docs/images/ml_flow.png)
+
+- **学習**：たくさんの人の脳波と正解（左か右か）をモデルに見せて、見分け方を覚えさせます。
+- **テスト**：学習に使っていない人の脳波で、どれだけ当たるかを調べます。初めて会う人の脳波も当てられるかを確かめるためです。
+- 左右の2択なので、でたらめに答えても約50%は当たります。**50%をどれだけ上回るか**が、モデルの実力です。最初の設定では、約75%当たります（学習に10分ほどかかります）。
+
+### 流れ
+
+| セクション | 内容 |
 |---|---|
-| raw | 読込・結合 |
-| filtered | フィルタ |
-| decomposition | ICA①（ICA。成分の数は pop_runica がデータの次元に合わせて決める） |
-| iclabel | ICA②（ICLabel） |
-| selection | ICA③（除去する成分） |
-| clean | ICA④（組み立て直し） |
-| epoch | エポック |
-| erd | ERD |
-| source | 信号源推定（頭のモデル・eLORETA・68領域の活動） |
-| regionErd | 領域ごとのERD |
+| 0. 準備 | EEGLAB を起動し、Deep Learning Toolbox があるかを確かめる |
+| 1. 設定 | 何を使って、どのモデルで学習するかを、ドロップダウンやチェックボックスで選ぶ |
+| 2. データを読み込む | 1人ずつ `pop_loadset` で読み込み、選んだ電極と時間を取り出す。人ごとの脳波の違いをそろえる（Euclidean Alignment） |
+| 3. 人を分ける | テスト用20人・確認用10人・学習用に分ける。同じ人が学習とテストの両方に入らないようにする |
+| 4. モデルを作る | EEGNet（脳波の分類でよく使われる畳み込みニューラルネットワーク）を、Deep Learning Toolbox の層を並べて作る |
+| 5. 学習する | 確認用の人の正解率を見ながら学習し、最もよかった時点のモデルを使う（過学習を防ぐ） |
+| 6. テストする | テスト用の20人で正解率を調べる。混同行列と、人ごとの正解率を見る |
+| 7. どこを見て判断したか | 電極を1つずつ隠して、正解率がどれだけ下がるかを調べる |
+| 8. 結果を記録して比べる | 設定と正解率を `outputs/ml_results.csv` に1行ずつ記録し、表で比べる |
 
-ある段階をやり直すと、その段階より後ろの結果と履歴だけが消えます。例えばICAの「④ 除去する成分」を変えても、①〜③（数分かかるICAを含む）はやり直しません。
+モデルの EEGNet は、アプリで行った処理と似たことを、学習で自分で見つけます。
 
-#### GUIのコードの読み方
+![EEGNet のしくみ](docs/images/ml_eegnet.png)
 
-```text
-src/app/
-├── mooc_app.m            # ウィンドウとタブを作り、各ステップを組み立てる（入口）
-├── MoocAppState.m        # 解析中のデータと、各段階の結果（セーブポイント）
-├── MoocHistory.m         # このデータに行った処理の履歴（全タブで共有）
-├── steps/                # 1タブ = 1ファイル
-│   └── step_*.m          # 「Layout → Callbacks → Drawing → Local functions」の順に記述
-└── ui/                   # 全タブ共通の部品
-    ├── mooc_ui_page_layout.m   # タブの画面構成と説明画面
-    ├── mooc_ui_pipeline_bar.m  # 「解析中のデータ」の帯
-    ├── mooc_ui_step_names.m    # タブ名と履歴の見出し（ここを変えると全体に反映）
-    ├── MoocProcessLog.m        # 履歴の表示（工程とコマンド。クリックで関数を開く）
-    ├── mooc_ui_run_steps.m     # 工程を順に実行し、履歴に追加する
-    ├── mooc_ui_step.m          # 工程1つ分の定義（段階・説明・関数名・処理・コード）
-    ├── mooc_ui_cue_display.m   # 参加者が見ていた画面
-    ├── mooc_ui_wave_player.m   # 波形と実験の再生（ステップ1〜3）
-    ├── mooc_ui_erd_view.m      # 強さの変化のグラフと分布の図の再生（ステップ4・5）
-    ├── mooc_ui_band_picker.m   # 周波数帯を選ぶ欄
-    ├── mooc_ui_style_buttons.m # ボタンの役割ごとの色
-    └── mooc_ui_placeholder.m   # 「〜を押すと表示されます」の表示
-```
+1. **時間のフィルタ**：波形から μ波・β波などのリズムを取り出す（アプリのステップ2のフィルタにあたる）
+2. **電極のフィルタ**：電極に重みをつけて足し、脳のある場所の活動を取り出す（ステップ3の ICA や、ステップ5の信号源推定にあたる）
+3. **強さを求めて分類**：取り出したリズムの強さから、左右を判断する（ステップ4の ERD にあたる）
 
-ステップのファイルでは、ボタンを押したときの処理を `mooc_ui_step` の配列として書いています。1工程ごとに「どの段階か」「何をするか（日本語）」「使う関数」「実際の処理」「対応するコード」が並ぶので、上から読めば処理の流れが分かります。解析は EEGLAB の pop_ 関数と、`src/io`・`src/analysis` の関数で行い、GUIのファイルはそれらを呼び出して結果を表示するだけです。
+### 変えられる設定（セクション1）
 
-### 1名分の前処理（関数を直接使う例）
+1回目はそのまま実行し、2回目からは設定を1つずつ変えて正解率を比べます。
 
-アプリの「このデータに行った処理」と、書き出した `processing_script.m` に、同じ処理のコードが並びます。主な部分は次のとおりです（EEGLABの関数を直接使います）。
+| 設定 | 選べるもの |
+|---|---|
+| 課題 | 運動イメージ／実動作 |
+| データの種類 | 頭皮の64電極／脳の68領域（アプリのステップ5と同じ信号源推定の結果） |
+| 使う場所 | 全部／運動に関わる場所（C3・Cz・C4 のまわり）／後頭部 |
+| 使う時間 | 合図から何秒後までの脳波を使うか（例：0〜3秒） |
+| モデル | CNN（波形をそのまま入力する EEGNet）／μ波・β波の強さを入力する小さなニューラルネットワーク |
+| 学習に使う人数 | 1〜74人 |
+| 人ごとの違いをそろえる | あり／なし |
+| もう一方の課題も学習に使う | あり／なし（学習データが2倍になる） |
+| キャリブレーションの試行数 | 0・5・10・20（実際に BCI を使うときのように、最初の数試行だけで調整する） |
 
-```matlab
-cfg = mooc_default_config();
-EEG = mooc_import_run(1, 4, cfg);                              % S001R04（運動イメージ）
-EEG = pop_chanedit(EEG, 'lookup', cfg.paths.channelLocationFile);
-EEG = pop_eegfiltnew(EEG, 59, 61, [], 1);                      % 60 Hzの電源ノイズ
-EEG = pop_eegfiltnew(EEG, 0.5, 45);                            % 0.5〜45 Hzを残す
-EEG = pop_runica(EEG, 'icatype', 'runica', 'extended', 1, 'rndreset', 'off');
-EEG = pop_iclabel(EEG, 'default');
-[~, best] = max(EEG.etc.ic_classification.ICLabel.classifications, [], 2);
-EEG = pop_subcomp(EEG, find(~ismember(best, [1 7])), 0);       % 脳・その他以外を除く
-EEG = pop_epoch(EEG, {'T1', 'T2'}, cfg.epoch.windowSec, 'epochinfo', 'yes');   % -1〜4 s
-isLeft = ~isnan(eeg_getepochevent(EEG, 'type', 'T1', 'timewin', [0 0]));         % 合図の時刻に T1 = 左拳
-labels = categorical(isLeft(:), [true false], {'left_fist', 'right_fist'});
-erd = mooc_compute_erd(EEG, labels, [8 13], cfg.epoch.baselineSec, cfg);         % μ波のERD（pop_newtimef）
-```
+## 機械学習用のデータの中身
 
-### 配布データの作成（TA）
-
-```matlab
-addpath src
-build_course_dataset            % 除外者以外の全員（105名）
-build_course_dataset(1:10)      % 指定した被験者
-```
-
-アプリのステップ1〜6と同じ処理を全員に行い（pop_ 関数が返すコマンドを `eeg_hist` で `EEG.history` に積むので、処理のコードはアプリの書き出しと同じ形になる）、アプリの書き出しと同じ関数（`mooc_save_epochs`、中身は `pop_saveset`）で `external/mooc_dataset/<課題>/S###_<課題>.set` に保存します。脳波データは全員分が必要です（`setup.m` のセクション4で `subjects = 1:109;`）。ICAの結果（`external/mooc_dataset/ica/`）は作り直すときに再利用します。リリース用の zip の作り方は `build_course_dataset.m` の先頭の説明にあります。1名あたり約3分（Apple Silicon）です。Parallel Computing Toolbox は使わないので、急ぐときは MATLAB を複数起動し、被験者を分けて実行します（2026年10月の全員分は4つに分けて実行）。1名につきICAを1回（運動イメージと実動作の6ランをまとめて）計算するので、両課題は同じ成分除去で比較できます。書き出し済みの被験者は飛ばすため、途中で止めても再実行すれば続きから処理します。
-
-出力は1名・1課題あたり約14 MB（電極 64 と 領域 68 × 640点 × 45試行、single）、全員分で約3 GB です。信号源推定のリードフィールド（約8 MB）は保存しません。
-
-### 機械学習用のデータ（`external/mooc_dataset`）の中身
-
-`imagery/S###_imagery.set`（運動イメージ）と `movement/S###_movement.set`（実動作）が105人分あります。アプリの書き出しと同じ形式の EEGLAB のデータセットで、`EEG = pop_loadset('S001_imagery.set');` で読み込みます。
+`external/mooc_dataset/imagery/S###_imagery.set`（運動イメージ）と `movement/S###_movement.set`（実動作）が104人分あります。アプリのステップ6で書き出すファイルと同じ形式の EEGLAB のデータセットで、`EEG = pop_loadset('S001_imagery.set');` で読み込めます。
 
 | 中身 | 大きさ | 内容 |
 |---|---|---|
 | `EEG.data` | 電極 × 時間 × 試行 | 脳波（µV）。64 電極 × 640 点（−1〜4 秒）× 45 試行 |
-| `EEG.roi.source_roi_data` | 領域 × 時間 × 試行 | 信号源推定で求めた、脳の68領域の活動。ROIconnect の `pop_roi_activity`（nPCA 1）と同じく、各領域の第1主成分を長さ1にそろえたもの（符号と、領域どうしの大きさの比には意味がない） |
+| `EEG.roi.source_roi_data` | 領域 × 時間 × 試行 | 信号源推定で求めた、脳の68領域の活動 |
 | `EEG.roi.atlas.Scouts` | 1 × 領域 | 領域の名前（`Label`、例：`precentral L`） |
-| `EEG.etc.mooc.labels` / `EEG.etc.mooc.runs` | 試行 × 1 | 試行ごとの合図（`"left_fist"` 左拳／`"right_fist"` 右拳）と記録の番号 |
-| `EEG.times` / `EEG.srate` | — | 合図からの時間（ミリ秒）／1秒あたりのサンプル数（128） |
+| `EEG.etc.mooc.labels` | 試行 × 1 | 試行ごとの合図（`"left_fist"` 左拳／`"right_fist"` 右拳） |
+| `EEG.times` / `EEG.srate` | — | 合図からの時間（ミリ秒）／1秒あたりの点の数（128） |
 | `EEG.chanlocs` | 1 × 電極 | 電極の名前と位置 |
-| `EEG.etc.mooc.info` | 表 | データの作り方（参加者・フィルタ・除去した成分など） |
 | `EEG.history` | 文字 | このデータに行った処理のコード |
 
-アプリとの違いは、ICA を運動イメージと実動作の6回分の記録をまとめて1回だけ計算している点だけです。
+アプリとの違いは1つだけです。ICA を、運動イメージと実動作の6回分の記録をまとめて1回だけ計算しています（両方の課題で同じ成分を取り除くため）。
 
 ## 既定の解析設定（`src/mooc_default_config.m`）
 
 | 項目 | 既定値 | 理由 |
 |---|---|---|
-| ノッチ | **60 Hz** | 米国で記録されたデータのため（PSDで60 Hzにピークを確認） |
-| バンドパス | 0.5〜45 Hz | 運動に関係するμ波（8〜13 Hz）とβ波（13〜30 Hz）を含む範囲を残す（上限は60 Hzの電源ノイズから離す） |
-| リサンプリング | 128 Hz | 160 Hzからダウンサンプリング |
-| 再参照 | 共通平均参照（CAR） | ランクが1下がるため、ICAはPCAで次元を自動調整 |
-| ICの選択 | `brain_other` | ICLabelの最大クラスがBrainかOtherの成分を残す（Live Script教材と同じ） |
-| エポック | −1〜4 s | −1〜0 sは休息（ERDのベースライン）、0〜4 sは課題（機械学習に使用） |
-| 除外被験者 | S088, S092, S100, S104 | サンプリング周波数・試行タイミングがほかと異なる |
+| ノッチ | 60 Hz | 米国で記録されたデータのため（電源の周波数） |
+| バンドパス | 0.5〜45 Hz | 運動に関係する μ波（8〜13 Hz）と β波（13〜30 Hz）を含む範囲を残す |
+| リサンプリング | 128 Hz | 160 Hz から間引いて、計算を軽くする |
+| 再参照 | 共通平均参照（CAR） | 全電極の平均を基準にする |
+| 取り除く成分 | ICLabel で「脳」「その他」以外と判定された成分 | まばたき・筋肉・心臓などのノイズを取り除く |
+| エポック | −1〜4 秒 | −1〜0 秒は休憩（基準）、0〜4 秒は課題 |
+| 使わない参加者 | S088・S089・S092・S100・S104 | 記録のしかた（1秒あたりの点の数・合図の記録）がほかと異なる |
 
-ICの選択方針は `brain_only`（P(Brain)が閾値以上だけを残す）と `artifact_threshold`（いずれかのノイズクラスが閾値以上なら除去）にも切り替えられます。
+## フォルダの構成
 
-## 主な関数
-
-| 関数 | 役割 |
-|---|---|
-| `mooc_find_edf` | EDFファイルの場所を探す（`external/PhysioNet`） |
-| `mooc_import_run` | 1ランの読込（`pop_biosig`）と、合図（T0/T1/T2）の意味付け |
-| `mooc_read_wfdb_events` | 合図の時刻を `.edf.event` から読む（BioSigでEDFから読むと1点ずれ、最初の合図が欠けるため） |
-| `mooc_cue_events` | 合図（休憩・左拳・右拳）の時刻と長さの一覧（再生と、合図の図に使う） |
-| `mooc_compute_erd` | 帯域パワーの時間変化（ERD）。左右・電極（または領域）ごとに `pop_newtimef` を行い、休憩中に比べた変化（%）にする |
-| `mooc_roi_activity` | 68領域の活動。ROIconnect の `pop_roi_activity`（eLORETA・nPCA 1）と同じ計算を、メモリを節約するため領域ごとに行う（結果は一致することをテストで確認。`pop_roi_activity` は全点の周波数も計算するため、このデータで約8 GB を使い、MATLAB Online で保証される 4 GB を超える） |
-| `mooc_save_epochs` | 書き出し（`pop_saveset`。処理のコードを `EEG.history`、試行の表と作り方を `EEG.etc.mooc` に入れる。機械学習用のデータも同じ形式。演習フォルダの場所は "." に置き換え、個人のフォルダ名が残らないようにする） |
-| `mooc_topoplot` | EEGLABの `topoplot` をアプリの中に描く |
-| `mooc_style` | 名前と色の決まり（合図・ICLabelの7種類・周波数帯の呼び名・青〜白〜赤の色）。すべての図で同じ色を使うために1か所にまとめている |
-
-解析は EEGLAB とプラグインの関数をそのまま使っています：フィルタ・間引き・再参照（`pop_eegfiltnew`・`pop_resample`・`pop_reref`）、ICA（`pop_runica`・`pop_iclabel`・`pop_icflag`・`pop_subcomp`）、切り出し（`pop_epoch`・`pop_select`）、時間周波数解析（`pop_newtimef`）、信号源推定の頭のモデル（`pop_dipfit_settings`・`pop_leadfield`）。
-
-## テスト
-
-```matlab
-run("develop/tests/test_analysis_functions.m")   % ERD（合成データ）
-run("develop/tests/test_source_estimation.m")   % 信号源推定（既知の位置に置いた信号源が正しい領域で見つかるか）
-run("develop/tests/test_app_workflow.m")         % GUIを全タブ自動操作し、各タブの画像を develop/screenshots/ に保存
+```text
+MOOC2026-EEG/
+├── setup.m                 # 最初に1回：必要なものをダウンロードする（Live Script）
+├── launch_app.m            # パート1：アプリを起動する
+├── machine_learning.m      # パート2：機械学習（Live Script）
+├── src/                    # アプリなどから呼ばれる関数
+│   ├── mooc_default_config.m   # 解析の設定とフォルダの場所
+│   ├── io/                 # データの読み込み・書き出し
+│   ├── analysis/           # ERD と、脳の領域ごとの活動の計算
+│   ├── plot/               # 図を描く
+│   └── app/                # アプリ（steps/ に1タブ1ファイル、ui/ に共通の部品）
+├── external/               # setup.m がダウンロードしたもの（GitHub では空）
+└── outputs/                # 書き出したデータと機械学習の結果
 ```
 
-## 配布データの再現（オプション課題）
+アプリのコードは、`src/app/steps/step_*.m` の1ファイルが1タブです。ボタンを押したときの処理は、「何をするか（日本語）」「使う関数」「対応するコード」を並べた形で書いているので、上から読めば処理の流れが分かります。解析は EEGLAB の `pop_` 関数で行い、アプリはそれを呼び出して結果を表示するだけです。
 
-配布データは `src/build_course_dataset.m` だけで作られています。受講生も同じ手順で作り直せます。
+## 発展：関数を直接使う
+
+アプリの「このデータに行った処理」と、書き出したファイルの `EEG.history` には、同じ処理のコードが並びます。主な部分は次のとおりです。
 
 ```matlab
-addpath src
-build_course_dataset(1)        % まず1名分（約3分）
-build_course_dataset(1:10)     % 10名分（約30分）
+addpath src; setup_eeglab;                                     % パスの設定と EEGLAB の起動
+cfg = mooc_default_config();
+EEG = mooc_import_run(1, 4, cfg);                              % S001 の R04（運動イメージ）
+EEG = pop_chanedit(EEG, 'lookup', cfg.paths.channelLocationFile);
+EEG = pop_eegfiltnew(EEG, 59, 61, [], 1);                      % 60 Hz の電源ノイズ
+EEG = pop_eegfiltnew(EEG, 0.5, 45);                            % 0.5〜45 Hz を残す
+EEG = pop_runica(EEG, 'icatype', 'runica', 'extended', 1, 'rndreset', 'off');
+EEG = pop_iclabel(EEG, 'default');
+[~, best] = max(EEG.etc.ic_classification.ICLabel.classifications, [], 2);
+EEG = pop_subcomp(EEG, find(~ismember(best, [1 7])), 0);       % 脳・その他以外を除く
+EEG = pop_epoch(EEG, {'T1', 'T2'}, cfg.epoch.windowSec, 'epochinfo', 'yes');   % -1〜4 秒
 ```
 
-- 必要なもの：MATLAB と Signal Processing Toolbox、`setup.m` のセクション1〜4（脳波データは全員分）
-- Windows・macOS・Linux・MATLAB Onlineのいずれでも同じコードで動きます。OSに依存する処理はありません。
-- ICAは乱数の状態を固定しているため、同じ環境で作り直せば同じ結果になります。ただし、OSやCPUが違うと数値計算ライブラリの丸め誤差の違いで、成分の順番や符号がわずかに変わることがあります。除去される成分の種類や機械学習の精度は、ほぼ同じになります。
+機械学習用のデータは `src/build_course_dataset.m` で作っています。脳波データを全員分ダウンロードすれば（`setup.m` のセクション4で `subjects = 1:109;`）、同じデータを自分で作り直せます（1人あたり約3分）。
 
 ## 環境についての注意
 
-- ICLabel は `pop_iclabel` をそのまま使います。高速化のための MEX（コンパイル済みプログラム）は Windows・Linux（MATLAB Online）・Intel Mac 用が同梱されています。Apple Silicon Mac では、最初に MEX のコンパイルを試みて「MEX-file compilation failed」と表示したあと、MATLAB 版の計算に切り替わります（結果は同じ。1名あたり約45秒）。
-- 開発・動作確認は MATLAB R2026b（Signal Processing Toolbox・Deep Learning Toolbox あり）で行っています。Signal Processing Toolbox の使用は許可済みです。
-- **Signal Processing Toolbox が必要です。** 周波数ごとの強さは `pwelch`、ERDの時間変化は `stft` で計算しています（自作の計算を減らすため）。間引き（`pop_resample`）も、その `resample` を使います。
+- Apple Silicon の Mac では、ICLabel が最初に「MEX-file compilation failed」と表示します。そのあと MATLAB で計算するので、結果は同じです。
+- ダウンロードを行うのは `setup.m` だけです。アプリと `src/` の関数はインターネットに接続しません（EEGLAB は起動時に、プラグインの新しい版があるかを確認します）。
 
-## 参考資料・ライセンス
+## ライセンス
 
-- [EEGLAB](https://eeglab.org/) / [ICLabel](https://github.com/sccn/ICLabel) / [BioSig](https://biosig.sourceforge.net/) / [ROIconnect](https://github.com/sccn/roiconnect)（eLORETA `mkfilt_eloreta_v2` と領域の主成分 `roi_getact`） / [FieldTrip](https://www.fieldtriptoolbox.org/)（`pop_leadfield` が使う）
-- eLORETA: Pascual-Marqui, R. D. (2007). Discrete, 3D distributed, linear imaging methods of electric neuronal activity. arXiv:0710.3341
-- [PhysioNet EEGMMIDB v1.0.0](https://physionet.org/content/eegmmidb/1.0.0/)（DOI: [10.13026/C28G6P](https://doi.org/10.13026/C28G6P)）
+この演習は、使っているソフトウェアとデータのライセンスに合わせて、次のように配布します。
 
-データセット・EEGLAB・各プラグインの利用時は、それぞれのライセンスと引用要件に従ってください。
+| 対象 | ライセンス | 理由 |
+|---|---|---|
+| プログラム（`.m` ファイル。`setup.m`・`launch_app.m`・`machine_learning.m`・`src/` など） | [GNU GPL 3.0 以降](LICENSE) | FieldTrip・BioSig（GPL 3.0）や firfilt・dipfit（GPL 2.0 以降）の関数を呼び出して動くため、これらすべてと両立する GPL 3.0 以降にする。BSD 2-Clause の EEGLAB・ICLabel・ROIconnect とも両立する |
+| 機械学習用のデータ（[リリース v1.0](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0) の zip） | [Open Data Commons Attribution License v1.0](https://opendatacommons.org/licenses/by/1-0/) | 元の脳波データ（PhysioNet）のライセンスを引き継ぐ |
+| 説明の画像（`docs/images/`） | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja) | 出典を示せば自由に使えるようにする |
+
+使うときは、下の「参考資料」にある元のデータとソフトウェアの文献も引用してください。
+
+## 参考資料
+
+### 脳波データ
+
+この演習の脳波データは、PhysioNet の [EEG Motor Movement/Imagery Dataset v1.0.0](https://physionet.org/content/eegmmidb/1.0.0/) です。ライセンスは [Open Data Commons Attribution License v1.0](https://physionet.org/content/eegmmidb/view-license/1.0.0/) です。機械学習用のデータ（[リリース v1.0](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0) の zip）は、このデータを EEGLAB で処理して作った派生データで、同じライセンスで配布しています。使うときは、次の文献を引用してください。
+
+- Schalk, G. (2009). EEG Motor Movement/Imagery Dataset (version 1.0.0). PhysioNet. https://doi.org/10.13026/C28G6P
+- Schalk, G., McFarland, D. J., Hinterberger, T., Birbaumer, N., & Wolpaw, J. R. (2004). BCI2000: A General-Purpose Brain-Computer Interface (BCI) System. *IEEE Transactions on Biomedical Engineering*, 51(6), 1034–1043.
+- Goldberger, A. L., et al. (2000). PhysioBank, PhysioToolkit, and PhysioNet: Components of a new research resource for complex physiologic signals. *Circulation*, 101(23), e215–e220.
+
+### 使っているソフトウェアとライセンス
+
+このリポジトリには、ほかの人が作ったソフトウェアは入っていません。`setup.m` が、それぞれの配布元から `external/` にダウンロードします（`external/` は GitHub では空です）。`src/` の関数は、これらの関数を呼び出して使っています。
+
+| ソフトウェア・データ | 使うところ | ライセンス |
+|---|---|---|
+| [EEGLAB](https://eeglab.org/) 2026.0.0 | 解析の全体（ICA の `runica` など） | BSD 2-Clause |
+| [firfilt](https://github.com/widmann/firfilt) 2.8 | フィルタ（`pop_eegfiltnew`） | GPL 2.0 以降 |
+| [ICLabel](https://github.com/sccn/ICLabel) 1.7 | 成分の種類の判定 | BSD 2-Clause（一部のファイルは GPL 2.0 以降） |
+| [dipfit](https://github.com/sccn/dipfit) 5.6 | 信号源推定の頭のモデル | GPL 2.0 以降・BSD 2-Clause（ファイルごと） |
+| [FieldTrip](https://www.fieldtriptoolbox.org/)-lite 250523 | リードフィールドの計算（dipfit から） | GPL 3.0 |
+| [ROIconnect](https://github.com/sccn/roiconnect) 1.1 | eLORETA と、領域ごとの活動 | BSD 2-Clause（ファイルごと） |
+| [BioSig](https://biosig.sourceforge.net/) 3.8.5 | EDF ファイルの読み込み | GPL 3.0 |
+| Colin27 の頭のモデル（EEGLAB に同梱） | 信号源推定 | McGill University（著作権表示を残せば利用・再配布可） |
+| [MATLAB](https://www.mathworks.com/products/matlab.html)・Signal Processing Toolbox・Deep Learning Toolbox | 全体 | MathWorks の製品（使う人がそれぞれライセンスを持つ必要がある） |
+
+### 文献
+
+使ったソフトウェアと手法の文献です。
+
+- EEGLAB：Delorme, A., & Makeig, S. (2004). EEGLAB: an open source toolbox for analysis of single-trial EEG dynamics including independent component analysis. *Journal of Neuroscience Methods*, 134(1), 9–21.
+- ICLabel：Pion-Tonachini, L., Kreutz-Delgado, K., & Makeig, S. (2019). ICLabel: An automated electroencephalographic independent component classifier, dataset, and website. *NeuroImage*, 198, 181–197.
+- firfilt：Widmann, A., Schröger, E., & Maess, B. (2015). Digital filter design for electrophysiological data – a practical approach. *Journal of Neuroscience Methods*, 250, 34–46.
+- FieldTrip：Oostenveld, R., Fries, P., Maris, E., & Schoffelen, J.-M. (2011). FieldTrip: Open source software for advanced analysis of MEG, EEG, and invasive electrophysiological data. *Computational Intelligence and Neuroscience*, 2011, 156869.
+- ROIconnect：Pellegrini, F., Delorme, A., Nikulin, V., & Haufe, S. (2023). Identifying good practices for detecting inter-regional linear functional connectivity from EEG. *NeuroImage*, 277, 120218.
+- BioSig：Vidaurre, C., Sander, T. H., & Schlögl, A. (2011). BioSig: The free and open source software library for biomedical signal processing. *Computational Intelligence and Neuroscience*, 2011, 935364.
+- eLORETA：Pascual-Marqui, R. D. (2007). Discrete, 3D distributed, linear imaging methods of electric neuronal activity. arXiv:0710.3341
+- Colin27：Holmes, C. J., et al. (1998). Enhancement of MR images using registration for signal averaging. *Journal of Computer Assisted Tomography*, 22(2), 324–333.
+- 脳の68領域（Desikan-Killiany）：Desikan, R. S., et al. (2006). An automated labeling system for subdividing the human cerebral cortex on MRI scans into gyral based regions of interest. *NeuroImage*, 31(3), 968–980.
+- EEGNet：Lawhern, V. J., et al. (2018). EEGNet: a compact convolutional neural network for EEG-based brain–computer interfaces. *Journal of Neural Engineering*, 15(5), 056013.
+- Euclidean Alignment：He, H., & Wu, D. (2019). Transfer learning for brain–computer interfaces: A Euclidean space data alignment approach. *IEEE Transactions on Biomedical Engineering*, 67(2), 399–410.
