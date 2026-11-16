@@ -5,3 +5,7 @@ external/*
 outputs/
 *.asv
 develop/
+# Built by src/package_course_raw_data.m and uploaded as a Release asset
+/physionet_eegmmidb_s001-s005.zip
+# Lecture slides and their local build files are not distributed in this repository
+/materials/

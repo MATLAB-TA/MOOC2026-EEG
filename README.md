@@ -38,12 +38,12 @@ PhysioNet の [EEG Motor Movement/Imagery Dataset v1.0.0](https://physionet.org/
 | 1 | EEGLAB 2026.0.0（脳波解析のツール） | 約30 MB |
 | 2 | EEGLAB のプラグイン：firfilt・ICLabel・dipfit・FieldTrip-lite・ROIconnect | 約160 MB |
 | 3 | BioSig（脳波のファイルを読み込むツール） | 約5 MB |
-| 4 | 脳波データ：`subjects` で指定した参加者（最初は S001〜S005） | 1人 約15 MB |
+| 4 | アプリ用の脳波データ：S001〜S005（この演習のGitHub Releaseにまとめた部分データ） | 約41 MB |
 | 5 | 機械学習用のデータ：104人 × 2課題（この演習の [GitHub リリース](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0)） | 約3 GB |
 | 6 | 確認（「準備ができました」と表示されれば完了） | — |
 
 - 同じセクションを2回実行しても大丈夫です。済んでいるものは飛ばし、途中で止まったものは続きから行います。
-- ほかの参加者も解析したいときは、セクション4の `subjects` を変えて実行し直します（例：`subjects = [1 2 3 10 20];`）。
+- ほかの参加者も解析したいときは、セクション4の `additionalSubjects` に番号を追加して実行し直します（例：`additionalSubjects = [10 20];`）。追加分だけをPhysioNetから取得します。
 
 ### 3. 演習を進める
 
@@ -195,7 +195,14 @@ EEG = pop_subcomp(EEG, find(~ismember(best, [1 7])), 0);       % 脳・その他
 EEG = pop_epoch(EEG, {'T1', 'T2'}, cfg.epoch.windowSec, 'epochinfo', 'yes');   % -1〜4 秒
 ```
 
-機械学習用のデータは `src/build_course_dataset.m` で作っています。脳波データを全員分ダウンロードすれば（`setup.m` のセクション4で `subjects = 1:109;`）、同じデータを自分で作り直せます（1人あたり約3分）。
+機械学習用のデータは `src/build_course_dataset.m` で作っています。脳波データを全員分ダウンロードすれば（`setup.m` のセクション4で `additionalSubjects = 1:109;`）、同じデータを自分で作り直せます（1人あたり約3分）。
+
+GitHub Releaseで配布するアプリ用の部分データは、全員分の元データを用意した環境で次のように作ります。S001〜S005の必要な記録と、出典・ライセンス表示を含む `physionet_eegmmidb_s001-s005.zip` ができます。
+
+```matlab
+addpath src
+package_course_raw_data
+```
 
 ## 環境についての注意
 
@@ -209,6 +216,7 @@ EEG = pop_epoch(EEG, {'T1', 'T2'}, cfg.epoch.windowSec, 'epochinfo', 'yes');   %
 | 対象 | ライセンス | 理由 |
 |---|---|---|
 | プログラム（`.m` ファイル。`setup.m`・`launch_app.m`・`machine_learning.m`・`src/` など） | [GNU GPL 3.0 以降](LICENSE) | FieldTrip・BioSig（GPL 3.0）や firfilt・dipfit（GPL 2.0 以降）の関数を呼び出して動くため、これらすべてと両立する GPL 3.0 以降にする。BSD 2-Clause の EEGLAB・ICLabel・ROIconnect とも両立する |
+| アプリ用の脳波部分データ（リリース v1.0の `physionet_eegmmidb_s001-s005.zip`） | [Open Data Commons Attribution License v1.0](DATA_LICENSE.md) | PhysioNetの元データを変更せず、S001〜S005の演習に必要な記録だけを収録する |
 | 機械学習用のデータ（[リリース v1.0](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0) の zip） | [Open Data Commons Attribution License v1.0](https://opendatacommons.org/licenses/by/1-0/) | 元の脳波データ（PhysioNet）のライセンスを引き継ぐ |
 | 説明の画像（`docs/images/`） | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja) | 出典を示せば自由に使えるようにする |
 
@@ -218,7 +226,7 @@ EEG = pop_epoch(EEG, {'T1', 'T2'}, cfg.epoch.windowSec, 'epochinfo', 'yes');   %
 
 ### 脳波データ
 
-この演習の脳波データは、PhysioNet の [EEG Motor Movement/Imagery Dataset v1.0.0](https://physionet.org/content/eegmmidb/1.0.0/) です。ライセンスは [Open Data Commons Attribution License v1.0](https://physionet.org/content/eegmmidb/view-license/1.0.0/) です。機械学習用のデータ（[リリース v1.0](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0) の zip）は、このデータを EEGLAB で処理して作った派生データで、同じライセンスで配布しています。使うときは、次の文献を引用してください。
+この演習の脳波データは、PhysioNet の [EEG Motor Movement/Imagery Dataset v1.0.0](https://physionet.org/content/eegmmidb/1.0.0/) です。ライセンスは [Open Data Commons Attribution License v1.0](https://physionet.org/content/eegmmidb/view-license/1.0.0/) です。アプリ用の部分データと、機械学習用の派生データ（[リリース v1.0](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0) の zip）を同じライセンスで配布します。詳しい表示は [DATA_LICENSE.md](DATA_LICENSE.md) にまとめています。使うときは、次の文献を引用してください。
 
 - Schalk, G. (2009). EEG Motor Movement/Imagery Dataset (version 1.0.0). PhysioNet. https://doi.org/10.13026/C28G6P
 - Schalk, G., McFarland, D. J., Hinterberger, T., Birbaumer, N., & Wolpaw, J. R. (2004). BCI2000: A General-Purpose Brain-Computer Interface (BCI) System. *IEEE Transactions on Biomedical Engineering*, 51(6), 1034–1043.

@@ -2,7 +2,7 @@
 %[text] このスクリプトは、演習に必要な**プログラム**と**脳波データ**をインターネットからダウンロードして、この演習フォルダの中に置きます。
 %[text] - ダウンロードしたものは、すべて `external` フォルダに置きます。
 %[text] - 演習フォルダの外は変更しません。
-%[text] - ダウンロードの大きさ：プログラム 約200 MB、脳波データ 1人あたり 約15 MB、機械学習用のデータ 約3 GB \
+%[text] - ダウンロードの大きさ：プログラム 約200 MB、アプリ用の脳波データ 約41 MB、機械学習用のデータ 約3 GB \
 %[text] ## 実行のしかた
 %[text] このスクリプトは、ダウンロードするものごとにセクションで区切っています。各セクションにある「**このセクションを実行**」ボタンを、**上から順に1つずつ**押してください。
 %[text] ```
@@ -126,37 +126,50 @@ biosigPath      = fullfile(externalDir, 'BioSig');
 downloadAndUnzip(biosigUrl, 'Biosig3.8.5', biosigPath, biosigCheckFile);
 %%
 %[text] ## 4. 脳波データをダウンロードする
-%[text] PhysioNet というサイトで公開されている「EEG Motor Movement/Imagery Dataset」（体を動かしたり、動かすところを想像したりしているときの脳波の記録）を使います。
+%[text] PhysioNet で公開されている「EEG Motor Movement/Imagery Dataset」（体を動かしたり、動かすところを想像したりしているときの脳波の記録）を使います。
 %[text] - 紹介ページ　　：[https://physionet.org/content/eegmmidb/1.0.0/](https://physionet.org/content/eegmmidb/1.0.0/)
-%[text] - **ダウンロード元：**[https://physionet.org/files/eegmmidb/1.0.0/](https://physionet.org/files/eegmmidb/1.0.0/)（この下に、参加者ごとのフォルダ `S001`〜`S109` があります）
-%[text] - ライセンス　　：Open Data Commons Attribution License v1.0
+%[text] - ライセンス　　：[Open Data Commons Attribution License v1.0](https://physionet.org/content/eegmmidb/view-license/1.0.0/)（再配布可。出典とライセンスは `DATA_LICENSE.md` に記載）
 %[text] - 置き場所　　　：`external/PhysioNet/S001/` など \
-%[text] **ダウンロードするもの**
-%[text] - 参加者：コードの `subjects` で指定した人（最初は S001〜S005 の5人）
-%[text]     - アプリで解析するのは1人ずつなので、全員分は必要ありません。ほかの人も試したいときは、`subjects` を変えてもう一度実行してください（例：`subjects = [1 2 3 10 20];`）。
-%[text]     - S001〜S109 から選べます。ただし、記録のしかたがほかと違う S088・S089・S092・S100・S104 は使いません（指定しても飛ばします）。
+%[text] **最初に使う5人分（S001〜S005）**
+%[text] - この演習の GitHub Release にまとめた1つのZIP（約41 MB）から取得します。元のPhysioNetデータを変更せず、演習で使う記録だけを収録しています。
+%[text] - PhysioNetへファイルごとに何度も接続しないため、短時間で準備できます。すでにあるファイルは上書きしません。 \
+%[text] **ほかの参加者も試す場合（任意）**
+%[text] - コードの `additionalSubjects` に番号を追加すると、その人だけをPhysioNetから取得します（例：`additionalSubjects = [10 20];`）。
+%[text] - S001〜S109から選べます。ただし、記録のしかたがほかと違うS088・S089・S092・S100・S104は使いません（指定しても飛ばします）。
 %[text] - 記録　：参加者ごとに14回分の記録が公開されています。この演習では、次の6回分だけを使います。
 %[text]     - R03・R07・R11：左右の拳を実際に動かした記録
 %[text]     - R04・R08・R12：左右の拳を動かすところを想像した記録
 %[text] - 1回の記録につき、ファイルが2つあります。たとえば `S001R03.edf`（脳波そのもの）と `S001R03.edf.event`（「右」「左」などの合図が出た時刻）です。 \
-%[text] 1人分は 約15 MB です。1人分が終わるたびに「S001：完了」のように表示されます。
+%[text] 1人分は 約15 MB です。追加取得では、1人分が終わるたびに「S010：完了」のように表示されます。
 %[text] 途中で止めても、もう一度「このセクションを実行」ボタンを押せば、続きからダウンロードします。
   %[control:button:3256]{"position":[1,2]}
-
-% ダウンロード元の場所（この後ろに「/S001/S001R03.edf」のようにつなげる）
-physionetUrl = 'https://physionet.org/files/eegmmidb/1.0.0';
-
-% ダウンロードする参加者の番号（1〜109）。ほかの人も試したいときは、ここを変える
-subjects = [1 2 3 4 5];
-
-% 使わない5人（88, 89, 92, 100, 104）は除く（setdiff は「前の集まりから、後ろの集まりを除く」命令）
-excludedSubjects = [88 89 92 100 104];
-subjects = setdiff(subjects, excludedSubjects);
 
 % 記録の番号
 runs = [3 4 7 8 11 12];
 
-% 参加者ごとにくり返す
+% S001〜S005は、この演習のGitHub ReleaseにまとめたZIPから取得する
+releaseUrl = 'https://github.com/MATLAB-TA/MOOC2026-EEG/releases/download/v1.0';
+courseDataUrl = [releaseUrl '/physionet_eegmmidb_s001-s005.zip'];
+bundledSubjects = 1:5;
+expectedFiles = rawRecordFiles(bundledSubjects, runs);
+downloadAndMergeZip(courseDataUrl, 'PhysioNet', rawDataDir, expectedFiles);
+
+% ほかの参加者も試したいときだけ番号を追加する（例：[10 20]）。空なら何もしない
+additionalSubjects = [];
+if any(additionalSubjects < 1 | additionalSubjects > 109 | fix(additionalSubjects) ~= additionalSubjects)
+    error('additionalSubjectsには1〜109の整数を指定してください。');
+end
+
+% 追加分のダウンロード元。この後ろに「/S010/S010R03.edf」のようにつなげる
+physionetUrl = 'https://physionet.org/files/eegmmidb/1.0.0';
+excludedSubjects = [88 89 92 100 104];
+if isempty(additionalSubjects)
+    subjects = zeros(1, 0);   % forループが一度も実行されない、列数0の配列
+else
+    subjects = setdiff(additionalSubjects, [bundledSubjects excludedSubjects]);
+end
+
+% 追加する参加者ごとにくり返す
 for subject = subjects
     % 参加者の名前を作る（例：1 → 'S001'。%03d は「3けたの数字、足りない分は0で埋める」という意味）
     subjectId = sprintf('S%03d', subject);
@@ -299,6 +312,70 @@ end
 partialFile = [target '.part'];
 websave(partialFile, url);
 movefile(partialFile, target);
+end
+
+function files = rawRecordFiles(subjects, runs)
+% 参加者と記録の番号から、ZIPに入っているはずの相対パスを作る。
+files = strings(0, 1);
+for subject = subjects
+    subjectId = sprintf('S%03d', subject);
+    for run = runs
+        recordName = sprintf('%sR%02d.edf', subjectId, run);
+        files(end + 1) = fullfile(subjectId, recordName); %#ok<AGROW>
+        files(end + 1) = fullfile(subjectId, [recordName '.event']); %#ok<AGROW>
+    end
+end
+end
+
+function downloadAndMergeZip(url, folderInZip, destination, expectedFiles)
+% ZIPを展開して、まだないファイルだけをdestinationへコピーする。
+% 既存の参加者データは削除・上書きしない。
+if all(arrayfun(@(file) isfile(fullfile(destination, file)), expectedFiles))
+    fprintf('済み：%s（S001〜S005）\n', destination);
+    return;
+end
+
+workDir = [destination '_download'];
+if isfolder(workDir)
+    rmdir(workDir, 's');
+end
+mkdir(workDir);
+cleanup = onCleanup(@() removeFolder(workDir));
+
+fprintf('ダウンロード中：%s\n', url);
+zipFile = websave(fullfile(workDir, 'download.zip'), url);
+unzip(zipFile, workDir);
+source = fullfile(workDir, folderInZip);
+if ~isfolder(source)
+    error('ZIPの中に %s フォルダがありません：%s', folderInZip, url);
+end
+
+entries = dir(fullfile(source, '**', '*'));
+entries = entries(~[entries.isdir]);
+for k = 1:numel(entries)
+    sourceFile = fullfile(entries(k).folder, entries(k).name);
+    relativePath = erase(sourceFile, [source filesep]);
+    targetFile = fullfile(destination, relativePath);
+    targetDir = fileparts(targetFile);
+    if ~isfolder(targetDir)
+        mkdir(targetDir);
+    end
+    if ~isfile(targetFile)
+        copyfile(sourceFile, targetFile);
+    end
+end
+
+missing = expectedFiles(~arrayfun(@(file) isfile(fullfile(destination, file)), expectedFiles));
+if ~isempty(missing)
+    error('ZIPに必要な脳波データがありません：%s', strjoin(missing, ', '));
+end
+fprintf('完了：%s（S001〜S005）\n', destination);
+end
+
+function removeFolder(folder)
+if isfolder(folder)
+    rmdir(folder, 's');
+end
 end
 
 %[appendix]{"version":"1.0"}
