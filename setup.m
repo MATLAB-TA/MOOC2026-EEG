@@ -270,12 +270,12 @@ if isfolder(destination)
     rmdir(destination, 's');
 end
 
-% 作業用のフォルダを作る（最後に消す）
-workDir = [destination '_download'];
-if isfolder(workDir)
-    rmdir(workDir, 's');
-end
+% 作業用のフォルダをOSのローカル一時領域に作る（最後に消す）
+% Google Driveなどの同期フォルダ内で大きなZIPを直接扱うと、
+% 接続状態によってフォルダ作成に失敗することがあるため。
+workDir = tempname;
 mkdir(workDir);
+cleanup = onCleanup(@() removeFolder(workDir));
 
 % zip ファイルをダウンロードする（websave は、インターネット上のファイルを保存する命令）
 fprintf('ダウンロード中：%s\n', url);
@@ -287,8 +287,6 @@ unzip(zipFile, workDir);
 % 展開してできたフォルダを、置き場所へ移す
 movefile(fullfile(workDir, folderInZip), destination);
 
-% 作業用のフォルダを消す
-rmdir(workDir, 's');
 fprintf('完了：%s\n', destination);
 end
 %[text] 
@@ -335,10 +333,10 @@ if all(arrayfun(@(file) isfile(fullfile(destination, file)), expectedFiles))
     return;
 end
 
-workDir = [destination '_download'];
-if isfolder(workDir)
-    rmdir(workDir, 's');
-end
+% Google Driveなどの同期フォルダ上では、一時フォルダの作成中に
+% 「Transport endpoint is not connected」になることがあるため、
+% ZIPのダウンロードと展開はOSのローカル一時領域で行う。
+workDir = tempname;
 mkdir(workDir);
 cleanup = onCleanup(@() removeFolder(workDir));
 
