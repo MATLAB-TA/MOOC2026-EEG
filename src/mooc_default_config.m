@@ -73,22 +73,8 @@ cfg.epoch.taskSec = [0 4];
 cfg.erd.windowSec = 0.5;
 cfg.erd.timePoints = 200;
 
-% ---- Signal source estimation (step 5) ------------------------------------
-% EEGLAB's standard head (dipfit's boundary element model in MNI space) and
-% the cortex of the Colin27 head with the 68 regions of the Desikan-Killiany
-% atlas, as in ROIconnect's examples. The electrode positions come from
-% dipfit's standard_1005.elc, rotated by EEGLAB on lookup: coordTransform
-% turns them back. eLORETA regularization 0.05 (ROIconnect's default).
-cfg.source.hdmFile = fullfile(cfg.paths.dipfitRoot, 'standard_BEM', 'standard_vol.mat');
-cfg.source.mriFile = fullfile(cfg.paths.dipfitRoot, 'standard_BEM', 'standard_mri.mat');
-cfg.source.coordTransform = [0 0 0 0 0 -1.5708 1 1 1];
-cfg.source.sourceModelFile = fullfile(cfg.paths.eeglabRoot, 'functions', 'supportfiles', ...
-    'head_modelColin27_5003_Standard-10-5-Cap339.mat');
-cfg.source.sourceModel2mni = [0 -26.6046230000 -46 0.1234625600 0 -1.5707963000 1000 1000 1000];
-cfg.source.eloretaRegularization = 0.05;
-
 % ---- Frequency bands ------------------------------------------------------
-% Presets of the band pickers (steps 4 and 5); any range can also be typed.
+% Presets of the band picker (step 4); any range can also be typed.
 % Motor imagery mainly changes mu and beta; gamma stops at 45 Hz because of
 % the band-pass filter.
 cfg.bands = struct( ...

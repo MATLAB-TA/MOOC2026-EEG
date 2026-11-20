@@ -4,12 +4,12 @@
 
 本物の脳波データを使って、**「頭の中で左右どちらの拳を動かそうとしたか」を脳波から読み取る**演習です。中高生〜大学生向けです。
 
-- **パート1（アプリ）**：1人分の脳波を、ボタン操作で1ステップずつ解析します（ノイズ除去 → 独立成分分析 → 左右の比較 → 脳のどこが働いたかの推定）。
+- **パート1（アプリ）**：1人分の脳波を、ボタン操作で1ステップずつ解析します（ノイズ除去 → 独立成分分析 → 左右の比較）。
 - **パート2（機械学習）**：104人分の脳波で、左右を当てるモデルを作ります。設定を変えて正解率を比べます。
 
 上のボタンを押すと、ブラウザの MATLAB Online でこの演習が開きます。パソコンに何もインストールする必要はありません。
 
-![アプリの操作の流れ（ステップ0〜6）](docs/images/app_tour.gif)
+![アプリの操作の流れ（ステップ0〜5）](docs/images/app_tour.gif)
 
 ## 使うデータ
 
@@ -36,10 +36,10 @@ PhysioNet の [EEG Motor Movement/Imagery Dataset v1.0.0](https://physionet.org/
 | セクション | ダウンロードするもの | 大きさ |
 |---|---|---|
 | 1 | EEGLAB 2026.0.0（脳波解析のツール） | 約30 MB |
-| 2 | EEGLAB のプラグイン：firfilt・ICLabel・dipfit・FieldTrip-lite・ROIconnect | 約160 MB |
+| 2 | EEGLAB のプラグイン：firfilt・ICLabel・dipfit | 約65 MB |
 | 3 | BioSig（脳波のファイルを読み込むツール） | 約5 MB |
 | 4 | アプリ用の脳波データ：S001〜S005（この演習のGitHub Releaseにまとめた部分データ） | 約41 MB |
-| 5 | 機械学習用のデータ：104人 × 2課題（この演習の [GitHub リリース](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0)） | 約3 GB |
+| 5 | 機械学習用のデータ：104人 × 2課題（この演習の [GitHub リリース](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0)） | 約1.5 GB |
 | 6 | 確認（「準備ができました」と表示されれば完了） | — |
 
 - 同じセクションを2回実行しても大丈夫です。済んでいるものは飛ばし、途中で止まったものは続きから行います。
@@ -55,32 +55,27 @@ launch_app            % パート1：アプリを起動する
 
 ## パート1：アプリで1人分の脳波を解析する
 
-`launch_app` で開くアプリには、7つのタブがあります。左から順に進めると、ステップ1で選んだ1人分の脳波が、少しずつきれいになり、分析されていきます。
+`launch_app` で開くアプリには、6つのタブがあります。左から順に進めると、ステップ1で選んだ1人分の脳波が、少しずつきれいになり、分析されていきます。
 
 | タブ | やること |
 |---|---|
-| 0. はじめに | 使うデータと、6つのステップの流れを知る。環境（ツールが入っているか）を確かめる |
+| 0. はじめに | 使うデータと、5つのステップの流れを知る。環境（ツールが入っているか）を確かめる |
 | 1. データを理解 | 解析する記録を選んで読み込む。脳波の波形と電極の位置を見て、実験の様子（参加者が見ていた画面）を再生する |
 | 2. ノイズを除去 | 電源のノイズ（60 Hz）や、ゆっくりした揺れを取り除く。取り除く前と後を、波形と周波数のグラフで比べる |
 | 3. 独立成分分析（ICA） | 混ざり合った脳波を、もとの信号（成分）に分ける。まばたき・筋肉などのノイズの成分を ICLabel で見分けて取り除く |
 | 4. 左右の拳で脳の変化を比較 | 合図ごとに脳波を切り出し、左拳と右拳で μ波・β波の強さがどう変わるか（ERD）を、頭皮の図の動画で比べる |
-| 5. 信号源推定 | 頭皮の脳波から、脳の68の領域それぞれの活動を推定し、脳の図の動画で見る |
-| 6. データを書き出す | 処理した脳波を EEGLAB のデータセット（.set）として保存する。行った処理のコードも、ファイルの中（`EEG.history`）に保存される |
+| 5. データを書き出す | 処理した脳波を EEGLAB のデータセット（.set）として保存する。行った処理のコードも、ファイルの中（`EEG.history`）に保存される |
 
 **ステップ4：左右の拳で、頭皮の脳波の強さはどう変わるか**（青：弱くなる、赤：強くなる）
 
 ![ステップ4の頭皮の図の動画](docs/images/app_erd.gif)
-
-**ステップ5：脳のどの領域が働いたか**
-
-![ステップ5の脳の図の動画](docs/images/app_source.gif)
 
 ### アプリのしくみ
 
 - **行った処理がコードで見える**：各タブの左側の「このデータに行った処理」に、ボタンを押すたびに実行した EEGLAB のコード（例：`EEG = pop_eegfiltnew(...)`）が積み上がります。行をクリックすると、その関数のファイルが MATLAB のエディタで開きます。
 - **やり直しができる**：各段階の結果は保存されています。ある段階をやり直すと、それより後ろの結果だけが消えます（例：ICA で取り除く成分を変えても、数分かかる ICA の計算はやり直しません）。
 - **ボタンの色**：青いボタンが「次に押すボタン」です。済んだ段階は薄い緑、まだ押せないボタンは灰色になります。
-- **書き出したデータは機械学習にも使える**：ステップ6で保存するファイルは、パート2の機械学習用のデータと同じ形式です。
+- **書き出したデータは機械学習にも使える**：ステップ5で保存するファイルは、パート2の機械学習用のデータと同じ形式です。
 
 ## パート2：機械学習で、脳波から「左の拳か、右の拳か」を当てる
 
@@ -111,7 +106,7 @@ launch_app            % パート1：アプリを起動する
 ![EEGNet のしくみ](docs/images/ml_eegnet.png)
 
 1. **時間のフィルタ**：波形から μ波・β波などのリズムを取り出す（アプリのステップ2のフィルタにあたる）
-2. **電極のフィルタ**：電極に重みをつけて足し、脳のある場所の活動を取り出す（ステップ3の ICA や、ステップ5の信号源推定にあたる）
+2. **電極のフィルタ**：電極に重みをつけて足し、脳のある場所の活動を取り出す（ステップ3の ICA にあたる）
 3. **強さを求めて分類**：取り出したリズムの強さから、左右を判断する（ステップ4の ERD にあたる）
 
 ### 変えられる設定（セクション1）
@@ -121,7 +116,6 @@ launch_app            % パート1：アプリを起動する
 | 設定 | 選べるもの |
 |---|---|
 | 課題 | 運動イメージ／実動作 |
-| データの種類 | 頭皮の64電極／脳の68領域（アプリのステップ5と同じ信号源推定の結果） |
 | 使う場所 | 全部／運動に関わる場所（C3・Cz・C4 のまわり）／後頭部 |
 | 使う時間 | 合図から何秒後までの脳波を使うか（例：0〜3秒） |
 | モデル | CNN（波形をそのまま入力する EEGNet）／μ波・β波の強さを入力する小さなニューラルネットワーク |
@@ -132,13 +126,11 @@ launch_app            % パート1：アプリを起動する
 
 ## 機械学習用のデータの中身
 
-`external/mooc_dataset/imagery/S###_imagery.set`（運動イメージ）と `movement/S###_movement.set`（実動作）が104人分あります。アプリのステップ6で書き出すファイルと同じ形式の EEGLAB のデータセットで、`EEG = pop_loadset('S001_imagery.set');` で読み込めます。
+`external/mooc_dataset/imagery/S###_imagery.set`（運動イメージ）と `movement/S###_movement.set`（実動作）が104人分あります。アプリのステップ5で書き出すファイルと同じ形式の EEGLAB のデータセットで、`EEG = pop_loadset('S001_imagery.set');` で読み込めます。
 
 | 中身 | 大きさ | 内容 |
 |---|---|---|
 | `EEG.data` | 電極 × 時間 × 試行 | 脳波（µV）。64 電極 × 640 点（−1〜4 秒）× 45 試行 |
-| `EEG.roi.source_roi_data` | 領域 × 時間 × 試行 | 信号源推定で求めた、脳の68領域の活動 |
-| `EEG.roi.atlas.Scouts` | 1 × 領域 | 領域の名前（`Label`、例：`precentral L`） |
 | `EEG.etc.mooc.labels` | 試行 × 1 | 試行ごとの合図（`"left_fist"` 左拳／`"right_fist"` 右拳） |
 | `EEG.times` / `EEG.srate` | — | 合図からの時間（ミリ秒）／1秒あたりの点の数（128） |
 | `EEG.chanlocs` | 1 × 電極 | 電極の名前と位置 |
@@ -168,9 +160,10 @@ MOOC2026-EEG/
 ├── src/                    # アプリなどから呼ばれる関数
 │   ├── mooc_default_config.m   # 解析の設定とフォルダの場所
 │   ├── io/                 # データの読み込み・書き出し
-│   ├── analysis/           # ERD と、脳の領域ごとの活動の計算
+│   ├── analysis/           # ERD の計算
 │   ├── plot/               # 図を描く
 │   └── app/                # アプリ（steps/ に1タブ1ファイル、ui/ に共通の部品）
+├── archive/                # 開発者向け：演習から外した機能のコード（信号源推定。受講生は使わない）
 ├── external/               # setup.m がダウンロードしたもの（GitHub では空）
 └── outputs/                # 書き出したデータと機械学習の結果
 ```
@@ -215,7 +208,7 @@ package_course_raw_data
 
 | 対象 | ライセンス | 理由 |
 |---|---|---|
-| プログラム（`.m` ファイル。`setup.m`・`launch_app.m`・`machine_learning.m`・`src/` など） | [GNU GPL 3.0 以降](LICENSE) | FieldTrip・BioSig（GPL 3.0）や firfilt・dipfit（GPL 2.0 以降）の関数を呼び出して動くため、これらすべてと両立する GPL 3.0 以降にする。BSD 2-Clause の EEGLAB・ICLabel・ROIconnect とも両立する |
+| プログラム（`.m` ファイル。`setup.m`・`launch_app.m`・`machine_learning.m`・`src/` など） | [GNU GPL 3.0 以降](LICENSE) | BioSig（GPL 3.0）や firfilt・dipfit（GPL 2.0 以降）の関数を呼び出して動くため、これらすべてと両立する GPL 3.0 以降にする。BSD 2-Clause の EEGLAB・ICLabel とも両立する |
 | アプリ用の脳波部分データ（リリース v1.0の `physionet_eegmmidb_s001-s005.zip`） | [Open Data Commons Attribution License v1.0](DATA_LICENSE.md) | PhysioNetの元データを変更せず、S001〜S005の演習に必要な記録だけを収録する |
 | 機械学習用のデータ（[リリース v1.0](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0) の zip） | [Open Data Commons Attribution License v1.0](https://opendatacommons.org/licenses/by/1-0/) | 元の脳波データ（PhysioNet）のライセンスを引き継ぐ |
 | 説明の画像（`docs/images/`） | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja) | 出典を示せば自由に使えるようにする |
@@ -241,11 +234,8 @@ package_course_raw_data
 | [EEGLAB](https://eeglab.org/) 2026.0.0 | 解析の全体（ICA の `runica` など） | BSD 2-Clause |
 | [firfilt](https://github.com/widmann/firfilt) 2.8 | フィルタ（`pop_eegfiltnew`） | GPL 2.0 以降 |
 | [ICLabel](https://github.com/sccn/ICLabel) 1.7 | 成分の種類の判定 | BSD 2-Clause（一部のファイルは GPL 2.0 以降） |
-| [dipfit](https://github.com/sccn/dipfit) 5.6 | 信号源推定の頭のモデル | GPL 2.0 以降・BSD 2-Clause（ファイルごと） |
-| [FieldTrip](https://www.fieldtriptoolbox.org/)-lite 250523 | リードフィールドの計算（dipfit から） | GPL 3.0 |
-| [ROIconnect](https://github.com/sccn/roiconnect) 1.1 | eLORETA と、領域ごとの活動 | BSD 2-Clause（ファイルごと） |
+| [dipfit](https://github.com/sccn/dipfit) 5.6 | 電極の標準の位置 | GPL 2.0 以降・BSD 2-Clause（ファイルごと） |
 | [BioSig](https://biosig.sourceforge.net/) 3.8.5 | EDF ファイルの読み込み | GPL 3.0 |
-| Colin27 の頭のモデル（EEGLAB に同梱） | 信号源推定 | McGill University（著作権表示を残せば利用・再配布可） |
 | [MATLAB](https://www.mathworks.com/products/matlab.html)・Signal Processing Toolbox・Deep Learning Toolbox | 全体 | MathWorks の製品（使う人がそれぞれライセンスを持つ必要がある） |
 
 ### 文献
@@ -255,11 +245,6 @@ package_course_raw_data
 - EEGLAB：Delorme, A., & Makeig, S. (2004). EEGLAB: an open source toolbox for analysis of single-trial EEG dynamics including independent component analysis. *Journal of Neuroscience Methods*, 134(1), 9–21.
 - ICLabel：Pion-Tonachini, L., Kreutz-Delgado, K., & Makeig, S. (2019). ICLabel: An automated electroencephalographic independent component classifier, dataset, and website. *NeuroImage*, 198, 181–197.
 - firfilt：Widmann, A., Schröger, E., & Maess, B. (2015). Digital filter design for electrophysiological data – a practical approach. *Journal of Neuroscience Methods*, 250, 34–46.
-- FieldTrip：Oostenveld, R., Fries, P., Maris, E., & Schoffelen, J.-M. (2011). FieldTrip: Open source software for advanced analysis of MEG, EEG, and invasive electrophysiological data. *Computational Intelligence and Neuroscience*, 2011, 156869.
-- ROIconnect：Pellegrini, F., Delorme, A., Nikulin, V., & Haufe, S. (2023). Identifying good practices for detecting inter-regional linear functional connectivity from EEG. *NeuroImage*, 277, 120218.
 - BioSig：Vidaurre, C., Sander, T. H., & Schlögl, A. (2011). BioSig: The free and open source software library for biomedical signal processing. *Computational Intelligence and Neuroscience*, 2011, 935364.
-- eLORETA：Pascual-Marqui, R. D. (2007). Discrete, 3D distributed, linear imaging methods of electric neuronal activity. arXiv:0710.3341
-- Colin27：Holmes, C. J., et al. (1998). Enhancement of MR images using registration for signal averaging. *Journal of Computer Assisted Tomography*, 22(2), 324–333.
-- 脳の68領域（Desikan-Killiany）：Desikan, R. S., et al. (2006). An automated labeling system for subdividing the human cerebral cortex on MRI scans into gyral based regions of interest. *NeuroImage*, 31(3), 968–980.
 - EEGNet：Lawhern, V. J., et al. (2018). EEGNet: a compact convolutional neural network for EEG-based brain–computer interfaces. *Journal of Neural Engineering*, 15(5), 056013.
 - Euclidean Alignment：He, H., & Wu, D. (2019). Transfer learning for brain–computer interfaces: A Euclidean space data alignment approach. *IEEE Transactions on Biomedical Engineering*, 67(2), 399–410.

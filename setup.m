@@ -2,7 +2,7 @@
 %[text] このスクリプトは、演習に必要な**プログラム**と**脳波データ**をインターネットからダウンロードして、この演習フォルダの中に置きます。
 %[text] - ダウンロードしたものは、すべて `external` フォルダに置きます。
 %[text] - 演習フォルダの外は変更しません。
-%[text] - ダウンロードの大きさ：プログラム 約200 MB、アプリ用の脳波データ 約41 MB、機械学習用のデータ 約3 GB \
+%[text] - ダウンロードの大きさ：プログラム 約100 MB、アプリ用の脳波データ 約41 MB、機械学習用のデータ 約1.5 GB \
 %[text] ## 実行のしかた
 %[text] このスクリプトは、ダウンロードするものごとにセクションで区切っています。各セクションにある「**このセクションを実行**」ボタンを、**上から順に1つずつ**押してください。
 %[text] ```
@@ -54,7 +54,7 @@ eeglabCheckFile = 'eeglab.m';                        % このファイルがあ�
 downloadAndUnzip(eeglabUrl, eeglabFolderInZip, eeglabDir, eeglabCheckFile);
 %%
 %[text] ## 2. EEGLAB の追加機能（プラグイン）をダウンロードする
-%[text] EEGLAB の本体には入っていない、次の5つの追加機能を、EEGLAB のプラグイン配布サイト（[https://sccn.ucsd.edu/eeglab/plugins](https://sccn.ucsd.edu/eeglab/plugins)）からダウンロードします。EEGLAB の `plugins` フォルダに置くと、EEGLAB の起動時に自動で読み込まれます。
+%[text] EEGLAB の本体には入っていない、次の3つの追加機能を、EEGLAB のプラグイン配布サイト（[https://sccn.ucsd.edu/eeglab/plugins](https://sccn.ucsd.edu/eeglab/plugins)）からダウンロードします。EEGLAB の `plugins` フォルダに置くと、EEGLAB の起動時に自動で読み込まれます。
 %[text] - <u>**firfilt 2.8**</u>
 %[text]     - 使用用途　　　：データのフィルタリング（ステップ2）
 %[text]     - サイズ　　　　：約50 KB
@@ -66,21 +66,10 @@ downloadAndUnzip(eeglabUrl, eeglabFolderInZip, eeglabDir, eeglabCheckFile);
 %[text]     - ダウンロード元：[https://sccn.ucsd.edu/eeglab/plugins/ICLabel1.7.zip](https://sccn.ucsd.edu/eeglab/plugins/ICLabel1.7.zip)
 %[text]     - 置き場所　　　：`external/eeglab/plugins/ICLabel1.7`
 %[text] - <u>**dipfit 5.6**</u>
-%[text]     - 使用用途　　　：電極の標準の位置と、標準の頭のモデル（ステップ1・5）
+%[text]     - 使用用途　　　：電極の標準の位置（ステップ1）
 %[text]     - サイズ　　　　：約25 MB
 %[text]     - ダウンロード元：[https://sccn.ucsd.edu/eeglab/plugins/dipfit5.6.zip](https://sccn.ucsd.edu/eeglab/plugins/dipfit5.6.zip)
-%[text]     - 置き場所　　　：`external/eeglab/plugins/dipfit5.6`
-%[text] - <u>**FieldTrip-lite**</u>
-%[text]     - 使用用途　　　：頭のモデルから、脳の各点の活動が電極にどう届くかを計算する（ステップ5。dipfit が使う）
-%[text]     - サイズ　　　　：約85 MB
-%[text]     - ダウンロード元：[https://sccn.ucsd.edu/eeglab/plugins/fieldtrip-lite-20250523.zip](https://sccn.ucsd.edu/eeglab/plugins/fieldtrip-lite-20250523.zip)
-%[text]     - 置き場所　　　：`external/eeglab/plugins/Fieldtrip-lite250523`
-%[text] - <u>**ROIconnect 1.1**</u>
-%[text]     - 使用用途　　　：信号源推定で、脳の領域ごとの活動を求める（ステップ5）
-%[text]     - サイズ　　　　：約9 MB
-%[text]     - ダウンロード元：[https://sccn.ucsd.edu/eeglab/plugins/roiconnect1.1.zip](https://sccn.ucsd.edu/eeglab/plugins/roiconnect1.1.zip)
-%[text]     - 置き場所　　　：`external/eeglab/plugins/roiconnect1.1` \
-%[text] FieldTrip-lite は大きいので、少し時間がかかります。
+%[text]     - 置き場所　　　：`external/eeglab/plugins/dipfit5.6` \
   %[control:button:2ed9]{"position":[1,2]}
 
 pluginsDir = fullfile(externalDir, 'eeglab', 'plugins');
@@ -95,20 +84,10 @@ iclabelUrl  = 'https://sccn.ucsd.edu/eeglab/plugins/ICLabel1.7.zip';
 iclabelPath = fullfile(pluginsDir, 'ICLabel1.7');
 downloadAndUnzip(iclabelUrl, 'ICLabel', iclabelPath, 'pop_iclabel.m');
 
-% dipfit（電極の標準の位置・標準の頭のモデル）
+% dipfit（電極の標準の位置）
 dipfitUrl  = 'https://sccn.ucsd.edu/eeglab/plugins/dipfit5.6.zip';
 dipfitPath = fullfile(pluginsDir, 'dipfit5.6');
 downloadAndUnzip(dipfitUrl, 'dipfit', dipfitPath, 'pop_dipfit_settings.m');
-
-% FieldTrip-lite（頭のモデルの計算）
-fieldtripUrl  = 'https://sccn.ucsd.edu/eeglab/plugins/fieldtrip-lite-20250523.zip';
-fieldtripPath = fullfile(pluginsDir, 'Fieldtrip-lite250523');
-downloadAndUnzip(fieldtripUrl, 'fieldtrip-20250523', fieldtripPath, 'ft_prepare_leadfield.m');
-
-% ROIconnect（脳の領域ごとの活動）
-roiconnectUrl  = 'https://sccn.ucsd.edu/eeglab/plugins/roiconnect1.1.zip';
-roiconnectPath = fullfile(pluginsDir, 'roiconnect1.1');
-downloadAndUnzip(roiconnectUrl, 'roiCONNECT', roiconnectPath, 'pop_roi_activity.m');
 %%
 %[text] ## 3. BioSig をダウンロードする
 %[text] 脳波のファイル（EDF形式）を読み込むためのプログラムです。EEGLAB のプラグイン配布サイトからダウンロードします。
@@ -195,17 +174,17 @@ for subject = subjects
 end
 %%
 %[text] ## 5. 機械学習用のデータをダウンロードする
-%[text] 機械学習のパートでは、たくさんの人のデータが必要です。そこで、アプリと同じ処理（ステップ1〜6）を参加者104人全員に行ったデータを、あらかじめ用意しました。
+%[text] 機械学習のパートでは、たくさんの人のデータが必要です。そこで、アプリと同じ処理（ステップ1〜5）を参加者104人全員に行ったデータを、あらかじめ用意しました。
 %[text] アプリの「書き出し」で保存したファイル（例：`S001_imagery.set`）と同じ形式の EEGLAB のデータセットが、1人・1課題ごとに1つずつ入っています。`EEG = pop_loadset('S001_imagery.set');` のようにして読み込みます。
 %[text] - 作ったところ：この演習の GitHub のページ（MATLAB-TA/MOOC2026-EEG）のリリース v1.0
 %[text] - **ダウンロード元：**[https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0](https://github.com/MATLAB-TA/MOOC2026-EEG/releases/tag/v1.0)
 %[text] - 置き場所　　　：`external/mooc_dataset` \
 %[text] **ダウンロードするもの**
 %[text] - <u>**運動イメージ**</u>（左右の拳を動かすところを想像した記録 R04・R08・R12）
-%[text]     - ファイル　　　：`mooc_dataset_imagery.zip`（約1.5 GB）
+%[text]     - ファイル　　　：`mooc_dataset_imagery.zip`（約730 MB）
 %[text]     - 置き場所　　　：`external/mooc_dataset/imagery`
 %[text] - <u>**実動作**</u>（左右の拳を実際に動かした記録 R03・R07・R11）
-%[text]     - ファイル　　　：`mooc_dataset_movement.zip`（約1.5 GB）
+%[text]     - ファイル　　　：`mooc_dataset_movement.zip`（約730 MB）
 %[text]     - 置き場所　　　：`external/mooc_dataset/movement` \
 %[text] 大きいので、時間がかかります。
   %[control:button:5d71]{"position":[1,2]}

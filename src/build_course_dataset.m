@@ -15,8 +15,8 @@ function build_course_dataset(subjects)
 %   作るもの：
 %     external/mooc_dataset/imagery/S001_imagery.set       運動イメージ（R04・R08・R12）
 %     external/mooc_dataset/movement/S001_movement.set     実動作（R03・R07・R11）
-%       └ 中身はアプリの「書き出し」と同じ（EEG.data、EEG.roi.source_roi_data、
-%         EEG.etc.mooc.labels など）。pop_loadset で読み込む
+%       └ 中身はアプリの「書き出し」と同じ（EEG.data、EEG.etc.mooc.labels など）。
+%         pop_loadset で読み込む
 %     external/mooc_dataset/ica/S001_ica.mat   ICAの結果（作り直すときに再利用）
 %     external/mooc_dataset/build_log.csv      参加者ごとの結果と、かかった時間
 %
@@ -68,7 +68,7 @@ end
 
 % =========================================================================
 function result = processSubject(subject, cfg)
-% 1人分の処理。アプリのステップ1〜6と同じ順番です。
+% 1人分の処理。アプリのステップ1〜5と同じ順番です。
 
 subjectId = sprintf('S%03d', subject);
 conditions = cfg.data.conditions;            % imagery（運動イメージ）と movement（実動作）
@@ -130,17 +130,7 @@ removed = find(~ismember(best, [1 7]))';     % 1 = 脳、7 = その他
 [EEG, com] = pop_subcomp(EEG, removed, 0);
 EEG = eeg_hist(EEG, com);
 
-% ---- ステップ5の準備：標準の頭のモデル（電極の位置は全部の課題で同じなので1回だけ） ------
-source = cfg.source;
-[EEG, com] = pop_dipfit_settings(EEG, 'hdmfile', source.hdmFile, 'coordformat', 'MNI', ...
-    'mrifile', source.mriFile, 'chanfile', cfg.paths.channelLocationFile, ...
-    'coord_transform', source.coordTransform, 'chansel', 1:EEG.nbchan);
-EEG = eeg_hist(EEG, com);
-[EEG, com] = pop_leadfield(EEG, 'sourcemodel', source.sourceModelFile, ...
-    'sourcemodel2mni', source.sourceModel2mni, 'downsample', 1);
-EEG = eeg_hist(EEG, com);
-
-% ---- ステップ4〜6：課題ごとに切り出し、信号源推定をして、書き出す ------------------
+% ---- ステップ4・5：課題ごとに切り出して、書き出す ----------------------------------
 for index = 1:numel(conditions)
     condition = conditions(index);
 
@@ -152,12 +142,7 @@ for index = 1:numel(conditions)
         'deleteevents', 'off', 'deleteepochs', 'on');
     epochEEG = eeg_hist(epochEEG, com);
 
-    % ステップ5：信号源推定（eLORETA で、68領域の活動にする。EEG.roi に入る）
-    epochEEG = mooc_roi_activity(epochEEG, source.eloretaRegularization);
-    epochEEG = eeg_hist(epochEEG, sprintf(['EEG = mooc_roi_activity(EEG, %g);   ' ...
-        '%% pop_roi_activity（eLoreta・nPCA 1）と同じ計算を、領域ごとに行う'], source.eloretaRegularization));
-
-    % ステップ6：アプリの「書き出し」と同じ関数で、EEGLAB のデータセットとして保存する
+    % ステップ5：アプリの「書き出し」と同じ関数で、EEGLAB のデータセットとして保存する
     about = struct('subject', subject, 'task', condition.displayName, ...
         'notchHz', notchHz, 'bandHz', [cfg.bandpass.lowHz cfg.bandpass.highHz], ...
         'removed', removed, 'madeBy', 'src/build_course_dataset.m（運動イメージと実動作の6回分をまとめてICA）');

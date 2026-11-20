@@ -1,8 +1,8 @@
 function view = mooc_ui_erd_view(parent, cfg, guideLines)
 %MOOC_UI_ERD_VIEW 合図の前後で脳波の強さがどう変わるかを、時間を追って見る画面
 %
-%   ステップ4（電極）とステップ5（脳の領域）で使う。上に時間変化のグラフ、
-%   下に分布の図（頭皮または脳）、右に読み方と参加者の画面、下に再生のバー。
+%   ステップ4で使う。上に時間変化のグラフ、下に頭皮上の分布の図、右に
+%   読み方と参加者の画面、下に再生のバー。
 %     view = mooc_ui_erd_view(parent, cfg, 読み方の文)
 %     view.show(data)   結果を表示する（data の中身は show の中に書いた）
 %     view.play() / view.stop() / view.showFrame(秒) / view.clear(文字)
@@ -39,8 +39,8 @@ cursors = gobjects(0);
 movieTimer = [];
 movieClock = [];      % tic when the replay started, and the time it started at
 movieStart = 0;
-basis = [];           % the map of each electrode (region) alone, as columns (prepareMaps)
-basisKey = {};        % the electrodes (regions) basis was made for
+basis = [];           % the map of each electrode alone, as columns (prepareMaps)
+basisKey = {};        % the electrodes basis was made for
 mapSize = [];         % size of one interpolated scalp map
 
 view = struct('show', @show, 'play', @play, 'stop', @stopMovie, ...
@@ -64,14 +64,9 @@ clearView('結果がここに表示されます');
         sortedValues = sort(abs(data.erd.percent(:)));
         limit = min(100, max(20, ceil(sortedValues(ceil(0.85 * end)) / 10) * 10));
         for k = 1:2
-            if strcmp(data.map, 'scalp')
-                mooc_topoplot(mapAxes(k), data.erd.percent(:, 1, k), data.chanlocs, ...
-                    'ColorLimits', [-limit limit], 'Highlight', data.highlight, ...
-                    'ColorbarLabel', '%', 'ShowSides', true);
-            else
-                mooc_plot_brain(mapAxes(k), data.brain, data.erd.percent(:, 1, k), limit, ...
-                    'Highlight', data.highlight, 'ColorbarLabel', '%');
-            end
+            mooc_topoplot(mapAxes(k), data.erd.percent(:, 1, k), data.chanlocs, ...
+                'ColorLimits', [-limit limit], 'Highlight', data.highlight, ...
+                'ColorbarLabel', '%', 'ShowSides', true);
         end
         prepareMaps();
         timeSlider.Limits = data.erd.times([1 end]);
@@ -82,32 +77,20 @@ clearView('結果がここに表示されます');
     end
 
     function prepareMaps()
-        % A map is linear in the electrode (region) values, so the map of any
-        % values is a weighted sum of the maps of each electrode (region)
-        % alone. These are made once; then every frame of the replay is one
-        % matrix product, fast enough to change the colors gradually.
-        if strcmp(data.map, 'scalp')
-            key = {data.chanlocs.labels};
-        else
-            key = data.brain.regionNames;
-        end
+        % A map is linear in the electrode values, so the map of any values
+        % is a weighted sum of the maps of each electrode alone. These are
+        % made once; then every frame of the replay is one matrix product,
+        % fast enough to change the colors gradually.
+        key = {data.chanlocs.labels};
         if isequal(key, basisKey)
             return;
         end
-        if strcmp(data.map, 'scalp')
-            progress = uiprogressdlg(ancestor(parent, 'figure'), 'Title', '準備中', ...
-                'Indeterminate', 'on', 'Message', '頭皮上の分布のアニメーションを準備しています（数秒）');
-            closeProgress = onCleanup(@() delete(progress));
-            maps = mooc_topoplot([], eye(numel(key)), data.chanlocs, 'GridOnly', true);
-            mapSize = [size(maps, 1), size(maps, 2)];
-            basis = reshape(maps, [], numel(key));
-        else
-            % Each point of the cortex takes the value of its region (points
-            % in no region stay 0 = white).
-            inRegion = find(data.brain.region > 0);
-            basis = sparse(inRegion, data.brain.region(inRegion), 1, ...
-                numel(data.brain.region), numel(key));
-        end
+        progress = uiprogressdlg(ancestor(parent, 'figure'), 'Title', '準備中', ...
+            'Indeterminate', 'on', 'Message', '頭皮上の分布のアニメーションを準備しています（数秒）');
+        closeProgress = onCleanup(@() delete(progress));
+        maps = mooc_topoplot([], eye(numel(key)), data.chanlocs, 'GridOnly', true);
+        mapSize = [size(maps, 1), size(maps, 2)];
+        basis = reshape(maps, [], numel(key));
         basisKey = key;
     end
 
@@ -126,13 +109,8 @@ clearView('結果がここに表示されます');
             values = (1 - weight) * erd.percent(:, column, k) + weight * erd.percent(:, column + 1, k);
             % The map is drawn once (show); here only its colors change, which
             % is fast and leaves the axes as they are.
-            if strcmp(data.map, 'scalp')
-                surface = findobj(mapAxes(k), 'Type', 'surface');
-                surface(1).CData = reshape(basis * values, mapSize);
-            else
-                brainPatch = findobj(mapAxes(k), 'Type', 'patch');
-                brainPatch(1).FaceVertexCData = full(basis * values);
-            end
+            surface = findobj(mapAxes(k), 'Type', 'surface');
+            surface(1).CData = reshape(basis * values, mapSize);
             title(mapAxes(k), sprintf('%s：合図から %+.2f 秒', ...
                 mooc_style('label', erd.classes{k}), timeSec), 'FontWeight', 'normal');
         end

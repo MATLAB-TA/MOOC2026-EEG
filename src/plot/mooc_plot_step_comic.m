@@ -67,27 +67,6 @@ switch step
             'HorizontalAlignment', 'center', 'FontSize', 10);
 
     case 5
-        localHead(ax, [1.8 3], 1.4, dark);
-        angles = linspace(0, 2 * pi, 11);
-        plot(ax, 1.8 + 0.9 * cos(angles), 3 + 0.9 * sin(angles), 'o', 'MarkerSize', 4, ...
-            'MarkerFaceColor', [0.85 0.4 0.2], 'MarkerEdgeColor', 'none');
-        localArrow(ax, [3.5 4.6], [3 3]);
-        text(ax, 4.05, 3.7, 'eLORETA', 'HorizontalAlignment', 'center', 'FontSize', 8);
-        % The brain from above: two hemispheres, the right motor area weakened.
-        angles = linspace(-pi / 2, pi / 2, 60);
-        for side = [-1 1]
-            patch(ax, 7.1 + side * (0.08 + 1.3 * cos(angles)), 3 + 1.7 * sin(angles), ...
-                [0.96 0.92 0.90], 'EdgeColor', dark);
-        end
-        [gridX, gridY] = meshgrid(linspace(-1, 1, 80));
-        spot = exp(-((gridX) .^ 2 + (gridY) .^ 2) / 0.15);
-        spot(spot < 0.15) = NaN;
-        imagesc(ax, 7.85 + [-0.5 0.5], 3.2 + [-0.5 0.5], -spot, 'AlphaData', ~isnan(spot));
-        colormap(ax, mooc_style('colormap'));
-        clim(ax, [-1 1]);
-        text(ax, 7.1, 0.6, '脳の中の場所を推定', 'HorizontalAlignment', 'center', 'FontSize', 10);
-
-    case 6
         for k = 1:3
             y = 1.9 + k * 0.7;
             plot(ax, 0.3 + 2.8 * t, y + 0.2 * sin(2 * pi * (8 + k) * t), 'Color', dark);

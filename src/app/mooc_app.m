@@ -1,5 +1,5 @@
 function app = mooc_app(options)
-%MOOC_APP アプリの画面を作り、ステップ0〜6のタブを並べる
+%MOOC_APP アプリの画面を作り、ステップ0〜5のタブを並べる
 %
 %     app = mooc_app()            画面を開く
 %     app = mooc_app('Visible', 'off')   画面を出さずに作る（テスト用）
@@ -9,8 +9,8 @@ arguments
 end
 
 stepNames = mooc_ui_step_names();
-stepKeys = {'intro', 'data', 'filter', 'ica', 'erd', 'source', 'export'};
-builders = {@step_intro, @step_data, @step_filter, @step_ica, @step_erd, @step_source, @step_export};
+stepKeys = {'intro', 'data', 'filter', 'ica', 'erd', 'export'};
+builders = {@step_intro, @step_data, @step_filter, @step_ica, @step_erd, @step_export};
 
 state = MoocAppState(mooc_default_config());
 fig = uifigure('Name', '脳波解析演習 — EEG Motor Movement/Imagery Dataset', ...

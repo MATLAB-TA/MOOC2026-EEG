@@ -7,8 +7,8 @@ function EEG = mooc_save_epochs(EEG, file, about, scriptLines)
 %       about：作り方の表に書く内容（参加者・課題・フィルタ・除いた成分など）
 %       コード：EEG.history に入れる処理のコード（省略すると今の EEG.history のまま）
 %   EEG.etc.mooc に試行ごとの合図（labels）・記録の番号（runs）・作り方の表
-%   （info）を入れる。頭のモデルの計算結果（約8 MB）は保存しない。演習
-%   フォルダの場所は "." に置き換え、自分のフォルダ名がファイルに残らないようにする。
+%   （info）を入れる。演習フォルダの場所は "." に置き換え、自分のフォルダ名が
+%   ファイルに残らないようにする。
 
 [folder, name] = fileparts(file);
 EEG.setname = name;
@@ -24,10 +24,6 @@ runs = eeg_getepochevent(EEG, 'type', {'T1', 'T2'}, 'timewin', [0 0], 'fieldname
 EEG.etc.mooc.runs = runs(:);
 EEG.etc.mooc.info = localInfoTable(EEG, about);
 
-if isfield(EEG, 'dipfit') && isfield(EEG.dipfit, 'sourcemodel') && ...
-        isfield(EEG.dipfit.sourcemodel, 'leadfield')
-    EEG.dipfit.sourcemodel = rmfield(EEG.dipfit.sourcemodel, 'leadfield');
-end
 EEG = localRelativePaths(EEG, mooc_default_config().paths.projectRoot);
 if ~isfolder(folder)
     mkdir(folder);
@@ -50,10 +46,6 @@ reference = '記録時のまま';
 if strcmp(EEG.ref, 'average')
     reference = '全電極の平均（平均参照）';
 end
-source = 'なし';
-if isfield(EEG, 'roi') && isfield(EEG.roi, 'source_roi_data')
-    source = 'EEGLAB 標準の頭と eLORETA で、脳の68領域（Desikan-Killiany）の活動を推定';
-end
 items = {
     '参加者', sprintf('S%03d', about.subject)
     '課題', about.task
@@ -63,7 +55,6 @@ items = {
     '1秒あたりのサンプル数', sprintf('%g', EEG.srate)
     '基準', reference
     'ICAで除いた成分', sprintf('%d個（%s）', numel(about.removed), num2str(about.removed(:)'))
-    '信号源推定', source
     '作ったもの', about.madeBy
     '作った日時', char(datetime('now', 'Format', 'yyyy-MM-dd HH:mm'))};
 info = cell2table(items, 'VariableNames', {'item', 'value'});

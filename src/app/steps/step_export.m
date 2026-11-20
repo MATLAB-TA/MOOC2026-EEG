@@ -1,5 +1,5 @@
 function api = step_export(tab, state, nav)
-%STEP_EXPORT ステップ6「データを書き出す」の画面
+%STEP_EXPORT ステップ5「データを書き出す」の画面
 %
 %   処理したデータを EEGLAB のデータセット（.set）として保存し、中身を表示する。
 
@@ -29,12 +29,10 @@ filesPanel = uipanel(plotGrid, 'Title', ...
     'FontWeight', 'bold');
 contents = {
     'EEG.data', '電極 × 時間 × 試行', '脳波（µV）。1試行分は「行 = 電極、列 = 時間」の表'
-    'EEG.roi.source_roi_data', '領域 × 時間 × 試行', '（ステップ5を行った場合）脳の68領域の活動'
     'EEG.etc.mooc.labels', '試行 × 1', '試行ごとの合図：left_fist（左拳）／ right_fist（右拳）。EEG.etc.mooc.runs に記録の番号'
     'EEG.times', '1 × 時間', '合図からの時間（ミリ秒）。0 = 合図'
     'EEG.srate', '1 × 1', '1秒あたりのサンプル数'
     'EEG.chanlocs', '1 × 電極', '電極の名前（labels）と位置'
-    'EEG.roi.atlas.Scouts', '1 × 領域', '領域の名前（Label）'
     'EEG.etc.mooc.info', '表', 'データの作り方（参加者・フィルタ・除去した成分など）'
     'EEG.history', '文字', 'このデータに行った処理のコード'};
 contentsTable = uitable(uigridlayout(filesPanel, [1 1]), 'RowName', {}, ...
@@ -85,12 +83,7 @@ refresh();
             'Message', {'合図ごとに切り出して、ファイルに保存しています', '', ...
             '詳しい進み具合は、MATLABのコマンドウィンドウに表示されます。'});
         closeProgress = onCleanup(@() delete(progress));
-        if state.isDone('source')
-            % The epochs of steps 4-5, with the brain-region signals (EEG.roi).
-            epochEEG = state.sourceEEG;
-        else
-            epochEEG = pop_epoch(state.cleanEEG, {'T1', 'T2'}, cfg.epoch.windowSec, 'epochinfo', 'yes');
-        end
+        epochEEG = pop_epoch(state.cleanEEG, {'T1', 'T2'}, cfg.epoch.windowSec, 'epochinfo', 'yes');
         fprintf('\n=== データを書き出す：%s ===\n', file);
         mooc_save_epochs(epochEEG, file, localAbout(state), localScript(state.history.entries));
         fprintf('    → %d試行分を保存しました\n', epochEEG.trials);
@@ -113,18 +106,10 @@ refresh();
     function showPreview(file)
         % Read the saved file back: the actual sizes, and the first trial.
         saved = pop_loadset(file);
-        sizes = {size(saved.data), [], size(saved.etc.mooc.labels), size(saved.times), [1 1], ...
-            size(saved.chanlocs), [], size(saved.etc.mooc.info), size(saved.history)};
-        if isfield(saved, 'roi') && isfield(saved.roi, 'source_roi_data')
-            sizes{2} = size(saved.roi.source_roi_data);
-            sizes{7} = size(saved.roi.atlas.Scouts);
-        end
+        sizes = {size(saved.data), size(saved.etc.mooc.labels), size(saved.times), [1 1], ...
+            size(saved.chanlocs), size(saved.etc.mooc.info), size(saved.history)};
         for k = 1:numel(sizes)
-            if isempty(sizes{k})
-                contentsTable.Data{k, 2} = '（なし）';
-            else
-                contentsTable.Data{k, 2} = char(strjoin(string(sizes{k}), ' × '));
-            end
+            contentsTable.Data{k, 2} = char(strjoin(string(sizes{k}), ' × '));
         end
         firstTrial = saved.data(:, :, 1);                  % electrodes x samples
         previewTable.Data = firstTrial;
@@ -165,7 +150,7 @@ if settings.notch.enabled
 end
 about = struct('subject', state.subject, 'task', state.condition().displayName, ...
     'notchHz', notchHz, 'bandHz', [settings.bandpass.lowHz settings.bandpass.highHz], ...
-    'removed', find(state.rejectMask), 'madeBy', '脳波解析演習アプリ（ステップ1〜6）');
+    'removed', find(state.rejectMask), 'madeBy', '脳波解析演習アプリ（ステップ1〜5）');
 end
 
 function lines = localScript(entries)

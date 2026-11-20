@@ -5,7 +5,7 @@ classdef MoocAppState < handle
 
     properties (Constant)
         Stages = {'raw', 'filtered', 'decomposition', 'iclabel', ...
-            'selection', 'clean', 'epoch', 'erd', 'source', 'regionErd'}
+            'selection', 'clean', 'epoch', 'erd'}
     end
 
     properties
@@ -24,12 +24,9 @@ classdef MoocAppState < handle
         epochEEG = []           % epoch
         trialLabels = categorical.empty     % epoch: left_fist / right_fist of each epoch
         erd = []                % erd
-        sourceEEG = []          % source: the epochs with EEG.dipfit (head model)
-                                %   and EEG.roi (68 region signals)
-        regionErd = []          % regionErd
 
         introDone = false       % step 0: environment checked
-        exportFile = ''         % step 6: file the processed data was saved to
+        exportFile = ''         % step 5: file the processed data was saved to
     end
 
     methods
@@ -71,10 +68,6 @@ classdef MoocAppState < handle
                         obj.trialLabels = categorical.empty;
                     case 'erd'
                         obj.erd = [];
-                    case 'source'
-                        obj.sourceEEG = [];
-                    case 'regionErd'
-                        obj.regionErd = [];
                 end
             end
             obj.history.removeFrom(stage);
@@ -91,15 +84,13 @@ classdef MoocAppState < handle
                 case 'clean',         done = ~isempty(obj.cleanEEG);
                 case 'epoch',         done = ~isempty(obj.epochEEG);
                 case 'erd',           done = ~isempty(obj.erd);
-                case 'source',        done = ~isempty(obj.sourceEEG);
-                case 'regionErd',     done = ~isempty(obj.regionErd);
             end
         end
 
         function done = completedSteps(obj)
-            % One flag per tab (steps 0-6).
+            % One flag per tab (steps 0-5).
             done = [obj.introDone, obj.isDone('raw'), obj.isDone('filtered'), ...
-                obj.isDone('clean'), obj.isDone('erd'), obj.isDone('regionErd'), ...
+                obj.isDone('clean'), obj.isDone('erd'), ...
                 ~isempty(obj.exportFile)];
         end
 

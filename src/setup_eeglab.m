@@ -33,18 +33,6 @@ if ~localIsReady(paths.eeglabRoot)
          '（使われている EEGLAB：%s）'], which('eeglab'));
 end
 
-% Without its window ('nogui'), EEGLAB does not run the plugins' setup
-% functions. ROIconnect adds its libraries (e.g. the eLORETA code) there,
-% so its setup is run here; the part that builds its menu needs EEGLAB's
-% window and is skipped.
-if ~isempty(which('eegplugin_roiconnect')) && isempty(which('mkfilt_eloreta_v2'))
-    try
-        eegplugin_roiconnect([], {}, {});
-    catch
-        % the menu part: no EEGLAB window
-    end
-end
-
 % Adding all of BioSig with genpath shadows MATLAB built-ins. Only the EDF
 % reader and the resampling helper it calls are needed.
 if isfolder(paths.biosigRoot)
@@ -66,9 +54,9 @@ env.hasDeepLearningToolbox = ~isempty(ver('nnet'));
 end
 
 function ready = localIsReady(eeglabRoot)
-% This exercise's EEGLAB is the one used, with the plugins of steps 2-5.
+% This exercise's EEGLAB is the one used, with the plugins of steps 1-3.
 ready = startsWith(which('eeglab'), eeglabRoot) && ...
     startsWith(which('pop_runica'), eeglabRoot) && ...
     ~isempty(which('pop_eegfiltnew')) && ~isempty(which('pop_iclabel')) && ...
-    ~isempty(which('pop_dipfit_settings')) && ~isempty(which('pop_leadfield'));
+    ~isempty(which('pop_dipfit_settings'));
 end

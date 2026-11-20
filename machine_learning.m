@@ -46,12 +46,9 @@ fprintf('準備ができました。\n');
 %[text] - **課題**（`condition`）
 %[text]     - 運動イメージ（`"imagery"`）：拳を握るところを想像したときの脳波
 %[text]     - 実動作（`"movement"`）：実際に拳を握ったときの脳波
-%[text] - **データの種類**（`dataType`）
-%[text]     - 頭皮の64電極（`"electrodes"`）：頭皮で記録した脳波
-%[text]     - 脳の68領域（`"regions"`）：ステップ5の信号源推定で求めた、脳の領域ごとの活動
 %[text] - **使う場所**（`channelGroup`）
-%[text]     - 全部（`"all"`）：すべての電極（または領域）
-%[text]     - 運動に関わる場所（`"motor"`）：頭のてっぺん付近（C3・Cz・C4 のまわり。領域なら運動野・感覚野）
+%[text]     - 全部（`"all"`）：すべての電極（64個）
+%[text]     - 運動に関わる場所（`"motor"`）：頭のてっぺん付近（C3・Cz・C4 のまわり）
 %[text]     - 後頭部（`"occipital"`）：目で見たものを処理する場所
 %[text] - **使う時間**（`timeWindowSec`）
 %[text]     - 合図（0秒）から何秒後までの脳波を使うか。例：`[0 3]` は合図から3秒後まで、`[1 4]` は1秒後から4秒後まで \
@@ -73,7 +70,6 @@ fprintf('準備ができました。\n');
   %[control:button:7a02]{"position":[1,2]}
 
 condition        = "imagery"; %[control:dropdown:b101]{"position":[20,29]}
-dataType         = "electrodes"; %[control:dropdown:b102]{"position":[20,32]}
 channelGroup     = "all"; %[control:dropdown:b103]{"position":[20,25]}
 timeWindowSec    = [0 3]; %[control:dropdown:b104]{"position":[20,25]}
 modelType        = "cnn"; %[control:dropdown:b105]{"position":[20,25]}
@@ -124,8 +120,8 @@ for t = 1:numel(tasks)
         % （evalc は、表示される文字を受け取る命令。受け取った文字は使わずに捨てる）
         [~, EEG] = evalc("pop_loadset('filename', fileName, 'filepath', folder, 'verbose', 'off')");
 
-        % 電極（または領域）と、時間を選ぶ
-        [signal, channelNames, chanlocs] = selectChannels(EEG, dataType, channelGroup);
+        % 電極と、時間を選ぶ
+        [signal, channelNames, chanlocs] = selectChannels(EEG, channelGroup);
         timeIndex = EEG.times >= timeWindowSec(1) * 1000 & EEG.times < timeWindowSec(2) * 1000;   % EEG.times はミリ秒
         signal    = signal(:, timeIndex, :);
 
@@ -153,7 +149,7 @@ end
 srate      = EEG.srate;                     % 1秒あたりのサンプル数（128）
 classNames = categories(labelsPerSubject{1});
 
-fprintf('%d 人分を読み込みました（%s）。1試行は %d（電極または領域）× %d（時間の点）です。\n', ...
+fprintf('%d 人分を読み込みました（%s）。1試行は %d（電極）× %d（時間の点）です。\n', ...
     numSubjects, strjoin(tasks, '・'), size(trialsPerSubject{1}, 1), size(trialsPerSubject{1}, 2));
 %%
 %[text] ## 3. 学習用・確認用・テスト用に、人を分ける
@@ -205,7 +201,7 @@ fprintf('学習用：%d 人（%d 試行）\n確認用：%d 人（%d 試行）\n�
 %[text] **`modelType = "cnn"`** **のとき**：EEGNet（Lawhern ほか、2018年）という、脳波の分類でよく使われる畳み込みニューラルネットワークを、Deep Learning Toolbox の層を並べて作ります。波形をそのまま入力し、次の3段階で左右を判断します。
 %[text] ![EEGNet のしくみ](text:image:a1000005)
 %[text] 1. **時間のフィルタ**（`convolution2dLayer([1 64], ...)`）：波形から、特定の周波数のリズム（μ波・β波など）を取り出す。アプリのステップ2のフィルタにあたる
-%[text] 2. **電極のフィルタ**（`groupedConvolution2dLayer([電極の数 1], ...)`）：電極に重みをつけて足し、脳のある場所の活動を取り出す。ステップ3の ICA や、ステップ5の信号源推定にあたる
+%[text] 2. **電極のフィルタ**（`groupedConvolution2dLayer([電極の数 1], ...)`）：電極に重みをつけて足し、脳のある場所の活動を取り出す。ステップ3の ICA にあたる
 %[text] 3. **強さを求めて分類**：取り出したリズムの強さ（2乗して時間で平均）から、左右を判断する。ステップ4の ERD にあたる \
 %[text] どの周波数を取り出すか、どの電極を重くするかは、人が決めるのではなく、**モデルが学習で自分で見つけます**。
 %[text] **`modelType = "bandpower"`** **のとき**：電極ごとのμ波（8〜13 Hz）とβ波（13〜30 Hz）の強さを人が計算して入力し、小さなニューラルネットワーク（全結合層2つ）で分類します。何を入力するかを人が決める方法です。
@@ -323,7 +319,7 @@ ylabel('正解率（%）');
 title('テスト用の人ごとの正解率');
 %%
 %[text] ## 7. モデルは、どこを見て判断したか
-%[text] 電極（または脳の領域）を1つずつ「なかったこと」（値を0）にして、テストの正解率がどれだけ下がるかを調べます。下がり方が大きいほど、モデルがその場所の信号を頼りに判断していることになります。
+%[text] 電極を1つずつ「なかったこと」（値を0）にして、テストの正解率がどれだけ下がるかを調べます。下がり方が大きいほど、モデルがその場所の信号を頼りに判断していることになります。
 %[text] ![どこを見て判断したかの調べ方](text:image:a1000008)
 %[text] - 運動に関わる場所（頭のてっぺん付近。C3・Cz・C4 のあたり）が大きければ、脳の運動の信号を使っている
 %[text] - 後頭部や目の近くが大きければ、運動ではなく、画面の左右に出た合図を見たこと（視覚）や目の動きを使っているのかもしれない \
@@ -343,38 +339,27 @@ for c = 1:numChannels
 end
 
 figure('Name', 'どこを見て判断したか', 'Position', [100 100 760 600]);
-if dataType == "electrodes"
-    % 頭を上から見た図に、電極ごとの値を色で描く（EEGLAB の topoplot）
-    % 赤：なくすと正解率が下がった（判断に使っていた）、青：なくすと上がった
-    limit       = max(abs(importance));
-    markOptions = {};                       % C3・Cz・C4 に○を付ける（選んだ電極に含まれるとき）
-    marked      = find(ismember(lower(channelNames), ["c3" "cz" "c4"]));
-    if ~isempty(marked)
-        markOptions = {'emarker2', {marked, 'o', 'k', 8, 1}};
-    end
-    topoplot(importance, chanlocs, 'electrodes', 'on', 'maplimits', [-limit limit], markOptions{:});
-    colormap(gca, mooc_style('colormap'));
-    colorbar;
-    title({'その電極をなくしたときに、正解率が下がった量（ポイント）', '○ = C3・Cz・C4'});
-else
-    % 下がり方の大きい領域を10個、棒グラフで描く
-    [sortedImportance, rank] = sort(importance, 'descend');
-    top = rank(1:min(10, end));
-    barh(flipud(sortedImportance(1:numel(top))));
-    yticks(1:numel(top));
-    yticklabels(flipud(channelNames(top)));
-    xlabel('その領域をなくしたときに、正解率が下がった量（ポイント）');
-    title('判断に使われた脳の領域（上位10）');
+% 頭を上から見た図に、電極ごとの値を色で描く（EEGLAB の topoplot）
+% 赤：なくすと正解率が下がった（判断に使っていた）、青：なくすと上がった
+limit       = max(abs(importance));
+markOptions = {};                       % C3・Cz・C4 に○を付ける（選んだ電極に含まれるとき）
+marked      = find(ismember(lower(channelNames), ["c3" "cz" "c4"]));
+if ~isempty(marked)
+    markOptions = {'emarker2', {marked, 'o', 'k', 8, 1}};
 end
+topoplot(importance, chanlocs, 'electrodes', 'on', 'maplimits', [-limit limit], markOptions{:});
+colormap(gca, mooc_style('colormap'));
+colorbar;
+title({'その電極をなくしたときに、正解率が下がった量（ポイント）', '○ = C3・Cz・C4'});
 %%
 %[text] ## 8. 結果を記録して、比べる
 %[text] 今回の設定と正解率を `outputs/ml_results.csv` に1行書き足し、これまでの結果を表で表示します。セクション1の設定を変えて実行し直すたびに、行が増えていきます。
   %[control:button:7a09]{"position":[1,2]}
 
-newRow = table(string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm')), condition, dataType, ...
+newRow = table(string(datetime('now', 'Format', 'yyyy-MM-dd HH:mm')), condition, ...
     channelGroup, string(mat2str(timeWindowSec)), modelType, numel(trainSubjects), ...
     alignSubjects, useBothTasks, numCalibration, round(testAccuracy, 1), round(trainingSeconds), ...
-    'VariableNames', {'日時', '課題', 'データ', '電極', '時間窓_秒', 'モデル', '学習人数', ...
+    'VariableNames', {'日時', '課題', '電極', '時間窓_秒', 'モデル', '学習人数', ...
     '違いをそろえる', '両方の課題で学習', 'キャリブレーション試行数', 'テスト正解率', '学習時間_秒'});
 
 % 記録の項目（見出しの行）が今と違う古いファイルは、名前を変えて残し、新しく作り直す
@@ -398,55 +383,35 @@ disp(results);
 %[text] - 運動イメージと実動作では、どちらが当てやすかったでしょうか。それはなぜだと考えられますか。
 %[text] - 学習に使う人数を増やすと、正解率はどう変わりましたか。
 %[text] - モデルは、どの電極を頼りに判断していましたか。それは、ステップ4で見た μ波の変化（ERD）と合っていますか。
-%[text] - 64電極と、脳の68領域では、どちらがよく当たりましたか。
 %[text] - 人ごとの違いをそろえたり（`alignSubjects`）、もう一方の課題のデータを加えたり（`useBothTasks`）すると、正解率はどう変わりましたか。モデルの作り方を変えずに正解率が変わるのはなぜでしょうか。
 %[text] - `numCalibration` を `0` から `10` にすると、正解率はどう変わりましたか。論文や製品の正解率を見るときは、どのデータを使って評価したかに注意しましょう。 \
 %%
 %[text] ## （参考）このスクリプトで使っている関数
-%[text] - `selectChannels`：電極（または脳の領域）を選んで取り出す
+%[text] - `selectChannels`：電極を選んで取り出す
 %[text] - `eegnetLayers`：EEGNet の層を並べる
 %[text] - `bandPowerFeatures`：電極ごとのμ波・β波の強さを求める
 %[text] - `alignSubject`：人ごとの違いをそろえる（Euclidean Alignment）
 %[text] - `afterCalibration`：キャリブレーションに使った試行を外すための目印を作る \
-function [signal, names, chanlocs] = selectChannels(EEG, dataType, channelGroup)
+function [signal, names, chanlocs] = selectChannels(EEG, channelGroup)
 % EEG          ：pop_loadset で読み込んだデータ
-% dataType     ："electrodes"（64電極）または "regions"（脳の68領域）
 % channelGroup ："all"、"motor"、"occipital"
-% signal       ：選んだ電極（または領域）× 時間 × 試行
-% names        ：選んだ電極（または領域）の名前
-% chanlocs     ：選んだ電極の位置（topoplot で使う。領域のときは空）
+% signal       ：選んだ電極 × 時間 × 試行
+% names        ：選んだ電極の名前
+% chanlocs     ：選んだ電極の位置（topoplot で使う）
 
-if dataType == "electrodes"
-    signal     = EEG.data;
-    names      = string({EEG.chanlocs.labels})';
-    chanlocs   = EEG.chanlocs;
-    lowerNames = lower(names);
-    switch channelGroup
-        case "motor"        % 中心溝のまわり（FC・C・CP で始まる電極）
-            keep = startsWith(lowerNames, ["fc" "c"]);
-        case "occipital"    % 頭頂の後ろ〜後頭部（P・PO・O・Iz）
-            keep = startsWith(lowerNames, ["p" "o" "iz"]);
-        otherwise
-            keep = true(size(names));
-    end
-else
-    signal   = EEG.roi.source_roi_data;
-    names    = string({EEG.roi.atlas.Scouts.Label})';
-    chanlocs = [];
-    switch channelGroup
-        case "motor"        % 中心前回（運動野）・中心後回（感覚野）・中心傍小葉
-            keep = contains(names, ["precentral" "postcentral" "paracentral"]);
-        case "occipital"    % 後頭葉
-            keep = contains(names, ["lateraloccipital" "cuneus" "lingual" "pericalcarine"]);
-        otherwise
-            keep = true(size(names));
-    end
+names      = string({EEG.chanlocs.labels})';
+lowerNames = lower(names);
+switch channelGroup
+    case "motor"        % 中心溝のまわり（FC・C・CP で始まる電極）
+        keep = startsWith(lowerNames, ["fc" "c"]);
+    case "occipital"    % 頭頂の後ろ〜後頭部（P・PO・O・Iz）
+        keep = startsWith(lowerNames, ["p" "o" "iz"]);
+    otherwise
+        keep = true(size(names));
 end
-signal = signal(keep, :, :);
-names  = names(keep);
-if ~isempty(chanlocs)
-    chanlocs = chanlocs(keep);
-end
+signal   = EEG.data(keep, :, :);
+names    = names(keep);
+chanlocs = EEG.chanlocs(keep);
 end
 %[text] 
 function layers = eegnetLayers(numChannels, numTimes)
@@ -552,9 +517,6 @@ end
 %---
 %[control:dropdown:b101]
 %   data: {"defaultValue":"\"imagery\"","itemLabels":["運動イメージ","実動作"],"items":["\"imagery\"","\"movement\""],"label":"課題","run":"Nothing"}
-%---
-%[control:dropdown:b102]
-%   data: {"defaultValue":"\"electrodes\"","itemLabels":["頭皮の64電極","脳の68領域"],"items":["\"electrodes\"","\"regions\""],"label":"データの種類","run":"Nothing"}
 %---
 %[control:dropdown:b103]
 %   data: {"defaultValue":"\"all\"","itemLabels":["全部","運動に関わる場所","後頭部"],"items":["\"all\"","\"motor\"","\"occipital\""],"label":"使う場所","run":"Nothing"}

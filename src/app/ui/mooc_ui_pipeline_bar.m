@@ -4,8 +4,8 @@ function bar = mooc_ui_pipeline_bar(parent)
 %   どのステップまで処理したかを表示する。
 
 stages = struct( ...
-    'tab',   {2, 3, 4, 5, 6}, ...
-    'name',  {'データ', 'ノイズ除去', 'ICA', '左右比較', '信号源'});
+    'tab',   {2, 3, 4, 5}, ...
+    'name',  {'データ', 'ノイズ除去', 'ICA', '左右比較'});
 
 % A darker band with a line below, so the bar reads as separate from the
 % tabs underneath.
@@ -35,7 +35,7 @@ bar = struct('update', @update);
     function update(state, tabIndex)
         texts = localDetails(state);
         done = [state.isDone('raw'), state.isDone('filtered'), ...
-            state.isDone('clean'), state.isDone('erd'), state.isDone('regionErd')];
+            state.isDone('clean'), state.isDone('erd')];
         for k = 1:numel(stages)
             isCurrent = stages(k).tab == tabIndex;
             prefix = '';
@@ -60,7 +60,7 @@ end
 
 function texts = localDetails(state)
 % One short line per stage: what was done, or what is still missing.
-texts = {'まだ選んでいません', 'まだ', 'まだ', 'まだ', 'まだ'};
+texts = {'まだ選んでいません', 'まだ', 'まだ', 'まだ'};
 if state.isDone('raw')
     taskName = extractBefore([state.condition().displayName '（'], '（');   % e.g. 運動イメージ
     texts{1} = sprintf('S%03d・%s（R%s）', state.subject, taskName, ...
@@ -87,10 +87,5 @@ if state.isDone('erd')
     texts{4} = sprintf('%d回を平均（%g〜%g Hz）', state.epochEEG.trials, state.erd.bandHz);
 elseif state.isDone('epoch')
     texts{4} = sprintf('%d回を切り出し済み', state.epochEEG.trials);
-end
-if state.isDone('regionErd')
-    texts{5} = sprintf('%d領域（%g〜%g Hz）', numel(state.regionErd.regionNames), state.regionErd.bandHz);
-elseif state.isDone('source')
-    texts{5} = sprintf('%d領域の活動を推定済み', state.sourceEEG.roi.nROI);
 end
 end
